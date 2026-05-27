@@ -1,6 +1,6 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/Authcontext';
 import { Login } from './pages/Login';
 import { Cadastro } from './pages/Cadastro';
 import { DashboardCoord } from './pages/Dashboardcoor';
