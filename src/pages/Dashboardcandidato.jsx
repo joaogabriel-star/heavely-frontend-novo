@@ -1,0 +1,1016 @@
+import React, { useState, useEffect } from 'react';
+import '../styles/Dashboardcoor.css';
+import '../styles/Dashboardcandidato.css';
+import api, { eventoService } from '../services/api';
+
+export const DashboardCandidato = () => {
+
+  // ─── 1. NAVEGAÇÃO ────────────────────────────────────────────
+  const [activeTab,    setActiveTab]    = useState('provas');
+  const [activeSubTab, setActiveSubTab] = useState('comVagas');
+
+  // ─── 2. MODAIS E DETALHES ────────────────────────────────────
+  const [provaSelecionada,        setProvaSelecionada]        = useState(null);
+  const [candidaturaEmDetalhe,    setCandidaturaEmDetalhe]    = useState(null);
+  const [candidaturaParaCancelar, setCandidaturaParaCancelar] = useState(null);
+  const [motivoCancelamento,      setMotivoCancelamento]      = useState('');
+  const [provaParaRelatar,        setProvaParaRelatar]        = useState(null);
+  const [relatoForm,              setRelatoForm]              = useState({ tipo: '', descricao: '' });
+
+  // ─── 3. DADOS DO USUÁRIO ─────────────────────────────────────
+  const nomeLogado   = localStorage.getItem('nomeUsuario')   || 'João Santos';
+  const perfilLogado = localStorage.getItem('perfilUsuario') || 'Ledor';
+  const emailLogado  = localStorage.getItem('emailUsuario')  || 'joao@email.com';
+
+  const iniciais = nomeLogado && nomeLogado !== 'Candidato'
+    ? nomeLogado.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'JS';
+
+  // ─── 4. LISTAS DE DADOS ──────────────────────────────────────
+  const [provasDisponiveis,  setProvasDisponiveis]  = useState([]);
+  const [provasEmReserva,    setProvasEmReserva]    = useState([]);
+  const [totalVagasLivres,   setTotalVagasLivres]   = useState(0);
+  const [minhasCandidaturas, setMinhasCandidaturas] = useState([]);
+  const [provasAplicadas,    setProvasAplicadas]    = useState([]);
+
+  // ─── 5. PERFIL ───────────────────────────────────────────────
+  const [perfilFormData, setPerfilFormData] = useState({
+    nome: nomeLogado, email: emailLogado,
+    cpf: '', celular: '', chavePix: '', bancoNome: '',
+    novaSenha: '', confirmarSenha: ''
+  });
+
+  // ─── 6. PONTO ────────────────────────────────────────────────
+  const [horaAtual,       setHoraAtual]       = useState(new Date());
+  const [statusPonto,     setStatusPonto]     = useState('entrada');
+  const [registrosDeHoje, setRegistrosDeHoje] = useState([]);
+  const [scaneando,       setScaneando]       = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => setHoraAtual(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ─── HELPER: formata hora de string ISO ──────────────────────
+  const formatarHora = (dataString) => {
+    if (!dataString) return '--:--';
+    try {
+      return new Date(dataString).toLocaleTimeString('pt-BR', {
+        hour: '2-digit', minute: '2-digit'
+      });
+    } catch { return '--:--'; }
+  };
+
+  const formatarData = (data) => {
+    const f = data.toLocaleDateString('pt-BR', {
+      weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    return f.charAt(0).toUpperCase() + f.slice(1);
+  };
+
+  // ─── HELPER: verifica se data é hoje ─────────────────────────
+  const ehHoje = (data) => {
+    if (!data) return false;
+    const hoje = new Date();
+    return data.getDate()     === hoje.getDate()     &&
+           data.getMonth()    === hoje.getMonth()    &&
+           data.getFullYear() === hoje.getFullYear();
+  };
+
+  // ─── 7. CARREGAR EVENTOS ─────────────────────────────────────
+  const carregarEventos = async () => {
+    try {
+      const dadosEventos = await eventoService.listarEventos();
+      const agora        = new Date();
+      const comVagas     = [];
+      const emReserva    = [];
+      let   vagasLivres  = 0;
+
+      dadosEventos.forEach(e => {
+        if (e.statusEvento !== 'ATIVO') return;
+        const dataDaProva = new Date(e.dataProva);
+        if (dataDaProva <= agora) return;
+
+        const dia  = dataDaProva.getDate();
+        const mes  = dataDaProva.toLocaleDateString('pt-BR', { month: 'long' });
+        const hora = dataDaProva.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        const titulo      = e.nomeProva || e.tituloProva || 'Sem título';
+        const vagasLedor  = e.totalVagasLedor  ?? e.vagasLedor  ?? 0;
+        const vagasFiscal = e.totalVagasFiscal ?? e.vagasFiscal ?? 0;
+        const vagasTotais = vagasLedor + vagasFiscal;
+
+        const vagasLedorDisp  = e.vagasLedorDisponiveis  !== undefined ? e.vagasLedorDisponiveis  : vagasLedor;
+        const vagasFiscalDisp = e.vagasFiscalDisponiveis !== undefined ? e.vagasFiscalDisponiveis : vagasFiscal;
+        const vagasDisponiveis = vagasLedorDisp + vagasFiscalDisp;
+        const vagasPreenchidas = e.vagasPreenchidas || 0;
+
+        const temVaga = vagasTotais === 0 || vagasDisponiveis > 0;
+        if (temVaga) vagasLivres += vagasDisponiveis;
+
+        let funcaoTexto = 'Fiscal';
+        if (vagasLedor > 0 && vagasFiscal > 0) funcaoTexto = 'Ledor e Fiscal';
+        else if (vagasLedor > 0)               funcaoTexto = 'Ledor';
+
+        const provaFormatada = {
+          id: e.idEvento, titulo,
+          detalhes: `${funcaoTexto} · HIS`,
+          data: `${dia} de ${mes}, ${hora}`,
+          vagasTotais, vagasPreenchidas, vagasLedor, vagasFiscal,
+          valor: e.valorHora ? `R$ ${e.valorHora}/hora` : 'R$ 37/hora',
+          serie: e.serie || 'HIS',
+          status: temVaga ? 'Aberta' : 'Na Reserva',
+        };
+
+        if (temVaga) comVagas.push(provaFormatada);
+        else         emReserva.push(provaFormatada);
+      });
+
+      setProvasDisponiveis(comVagas);
+      setProvasEmReserva(emReserva);
+      setTotalVagasLivres(vagasLivres);
+    } catch (error) {
+      console.error('Erro ao carregar eventos:', error);
+    }
+  };
+
+  // ─── 8. CARREGAR CANDIDATURAS + RESTAURAR ESTADO DO PONTO ────
+  const carregarMinhasCandidaturas = async () => {
+    try {
+      const [respostaAlocacoes, dadosEventos] = await Promise.all([
+        api.get('/alocacoes/minhas'),
+        eventoService.listarEventos(),
+      ]);
+
+      const pendentes = [];
+      const historico = [];
+      const registrosRestaurados = [];
+
+      respostaAlocacoes.data.forEach(alocacao => {
+        const idEvento    = alocacao.idEvento    ?? alocacao.id_evento    ?? alocacao.IdEvento;
+        const papelEvento = alocacao.papelEvento ?? alocacao.papel_evento ?? alocacao.PapelEvento ?? 'N/A';
+
+        // Pega o checkIn e checkOut — aceita camelCase e PascalCase
+        const checkIn  = alocacao.checkInTime  || alocacao.CheckInTime  || null;
+        const checkOut = alocacao.checkOutTime || alocacao.CheckOutTime || null;
+
+        // ✅ FIX do typo: era horasTrabalhadasn (com n)
+        const horas = Number(
+          alocacao.horasTrabalhadas ?? alocacao.HorasTrabalhadas ?? 0
+        );
+
+        const evento = dadosEventos.find(ev => Number(ev.idEvento) === Number(idEvento));
+
+        let dataFormatada = 'Data não informada';
+        let dataPura      = null;
+
+        if (evento?.dataProva) {
+          const d = new Date(evento.dataProva);
+          dataPura = d;
+          if (!isNaN(d.getTime())) {
+            dataFormatada = `${d.getDate()} de ${d.toLocaleDateString('pt-BR', { month: 'long' })}, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+          }
+        }
+
+        const provaEstruturada = {
+          id:              idEvento,
+          titulo:          evento?.nomeProva || evento?.tituloProva || 'Prova sem título',
+          data:            dataFormatada,
+          dataPura,
+          serie:           evento?.serie || 'HIS',
+          funcao:          papelEvento,
+          status:          checkOut ? 'Concluída' : 'Confirmado',
+          sala:            alocacao.salaDesignada || alocacao.SalaDesignada || '',
+          observacoes:     alocacao.observacoes   || alocacao.Observacoes   || '',
+          entrada:         formatarHora(checkIn),
+          saida:           formatarHora(checkOut),
+          horasTrabalhadas: horas,
+        };
+
+        const agora = new Date();
+const eventoJaPassou = dataPura && dataPura < agora;
+
+if (checkOut) {
+  // Tem saída → Provas Aplicadas
+  historico.push(provaEstruturada);
+} else if (checkIn) {
+  // Tem entrada mas não saída → continua em Minhas Candidaturas (ainda ativo)
+  pendentes.push(provaEstruturada);
+} else if (!eventoJaPassou) {
+  // Evento futuro sem ponto → Minhas Candidaturas
+  pendentes.push(provaEstruturada);
+
+          
+          
+
+          // ✅ RESTAURA estado do ponto se já bateu entrada hoje
+          if (checkIn && dataPura && ehHoje(dataPura)) {
+            // Já bateu entrada hoje — restaura o estado
+            if (registrosRestaurados.length === 0) {
+              registrosRestaurados.push({
+                tipo:   'entrada',
+                hora:   formatarHora(checkIn),
+                status: '✅ Entrada registrada (restaurada do banco)',
+              });
+            }
+          }
+        }
+      });
+
+      setMinhasCandidaturas(pendentes);
+      setProvasAplicadas(historico);
+
+      // Restaura o estado visual do ponto
+      if (registrosRestaurados.length > 0) {
+        setRegistrosDeHoje(registrosRestaurados);
+        setStatusPonto('saida'); // Já bateu entrada, esperando saída
+      }
+
+    } catch (error) {
+      console.error('Erro ao buscar candidaturas:', error);
+    }
+  };
+
+  useEffect(() => {
+    carregarEventos();
+    carregarMinhasCandidaturas();
+  }, []);
+
+  // ─── 9. FINANCEIRO ───────────────────────────────────────────
+  const valorFixoHora         = 37;
+  const totalHorasHistorico   = provasAplicadas.reduce((acc, p) => acc + (p.horasTrabalhadas || 0), 0);
+  const totalReceberHistorico = totalHorasHistorico * valorFixoHora;
+
+  const calcularProximoPagamento = () => {
+    const hoje = new Date();
+    const dia  = hoje.getDate();
+    const mes  = hoje.getMonth();
+    const ano  = hoje.getFullYear();
+    return dia <= 15
+      ? new Date(ano, mes, 15).toLocaleDateString('pt-BR')
+      : new Date(ano, mes + 1, 0).toLocaleDateString('pt-BR');
+  };
+
+  const formatarMoeda = (valor) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+
+  // ─── 10. ID DO EVENTO DE HOJE ────────────────────────────────
+  // Usa dataPura para comparar com hoje corretamente
+  const provaDeHoje = minhasCandidaturas.find(c => {
+    return c.dataPura && ehHoje(c.dataPura) && c.status === 'Confirmado';
+  });
+
+  const idEventoHoje = provaDeHoje?.id || null;
+
+  // ─── 11. BATER PONTO ─────────────────────────────────────────
+  const handleRegistrarPonto = async () => {
+    if (!idEventoHoje) {
+      // Se não tem prova hoje, usa a primeira candidatura confirmada para teste
+      const primeiraConfirmada = minhasCandidaturas.find(c => c.status === 'Confirmado');
+      if (!primeiraConfirmada) {
+        alert('Você não possui nenhuma prova confirmada para hoje.');
+        return;
+      }
+    }
+
+    const idParaUsar = idEventoHoje || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
+
+    try {
+      if (statusPonto === 'entrada') {
+        // ✅ FIX: era api.put, deve ser api.post
+        await api.post(`/alocacoes/${idParaUsar}/checkin`);
+
+        setRegistrosDeHoje(prev => [...prev, {
+          tipo:   'entrada',
+          hora:   horaAtual.toLocaleTimeString('pt-BR'),
+          status: '✅ Entrada salva no banco de dados',
+        }]);
+        setStatusPonto('saida');
+        carregarMinhasCandidaturas();
+      } else {
+        setScaneando(true);
+      }
+    } catch (error) {
+      console.error('Erro checkin:', error.response?.data);
+      const msg = error.response?.data?.mensagem
+        || error.response?.data?.message
+        || 'Erro ao registrar entrada. Você já registrou hoje?';
+      alert(msg);
+    }
+  };
+
+  const confirmarScaneamentoQRCode = async () => {
+    const idParaUsar = idEventoHoje || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
+
+    try {
+      // ✅ FIX: era api.put, deve ser api.post
+      await api.post(`/alocacoes/${idParaUsar}/checkout`);
+
+      setRegistrosDeHoje(prev => [...prev, {
+        tipo:   'saida',
+        hora:   horaAtual.toLocaleTimeString('pt-BR'),
+        status: '✅ Saída salva — horas calculadas pelo sistema',
+      }]);
+      setScaneando(false);
+      setStatusPonto('concluido');
+
+      // Recarrega para mover prova para "Provas Aplicadas"
+      await carregarMinhasCandidaturas();
+    } catch (error) {
+      console.error('Erro checkout:', error.response?.data);
+      const msg = error.response?.data?.mensagem || 'Erro ao registrar saída.';
+      alert(msg);
+    }
+  };
+
+  // ─── 12. PERFIL ──────────────────────────────────────────────
+  const handlePerfilChange = (e) => {
+    const { name, value } = e.target;
+    setPerfilFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSalvarPerfil = () => {
+    if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
+      alert('As senhas não coincidem!'); return;
+    }
+    alert('Perfil atualizado com sucesso!');
+  };
+
+  // ─── 13. CANDIDATURA ─────────────────────────────────────────
+  const confirmarCandidatura = async () => {
+    try {
+      await eventoService.inscreverEmEvento(provaSelecionada.id, { PapelEvento: perfilLogado });
+      const nova = {
+        id: provaSelecionada.id, titulo: provaSelecionada.titulo,
+        data: provaSelecionada.data, dataPura: null,
+        serie: provaSelecionada.serie || 'HIS',
+        funcao: perfilLogado, status: 'Confirmado',
+      };
+      setMinhasCandidaturas(prev => [...prev, nova]);
+      setProvasDisponiveis(prev =>
+        prev.map(p => p.id === provaSelecionada.id
+          ? { ...p, vagasPreenchidas: (p.vagasPreenchidas || 0) + 1 } : p)
+      );
+      alert('Inscrição confirmada com sucesso!');
+      setProvaSelecionada(null);
+      setActiveTab('candidaturas');
+    } catch (error) {
+      let msg = 'Erro ao se candidatar.';
+      if (error.response?.data?.mensagem)                msg = error.response.data.mensagem;
+      else if (error.response?.data?.errors)             msg = JSON.stringify(error.response.data.errors);
+      else if (typeof error.response?.data === 'string') msg = error.response.data;
+      alert(msg);
+    }
+  };
+
+  // ─── 14. CANCELAMENTO ────────────────────────────────────────
+  const abrirModalCancelamento = (candidatura) => {
+    setCandidaturaParaCancelar(candidatura);
+    setMotivoCancelamento('');
+  };
+
+  const efetivarCancelamento = async () => {
+    if (!motivoCancelamento) { alert('Selecione um motivo.'); return; }
+    try {
+      setMinhasCandidaturas(prev => prev.filter(c => c.id !== candidaturaParaCancelar.id));
+      alert(`Inscrição cancelada: ${motivoCancelamento}`);
+      setCandidaturaParaCancelar(null);
+      carregarEventos();
+    } catch (error) {
+      alert('Erro ao cancelar inscrição.');
+    }
+  };
+
+  // ─── 15. RELATO ──────────────────────────────────────────────
+  const abrirModalRelato  = (prova) => { setProvaParaRelatar(prova); setRelatoForm({ tipo: '', descricao: '' }); };
+  const fecharModalRelato = ()       => setProvaParaRelatar(null);
+  const enviarRelato = async () => {
+    if (!relatoForm.tipo || !relatoForm.descricao) { alert('Preencha tipo e descrição.'); return; }
+    alert('✅ Relato enviado com sucesso à coordenação!');
+    fecharModalRelato();
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════
+  return (
+    <div className="dash-candidato-container">
+
+      {/* NAVBAR */}
+      <nav className="nav">
+        <div className="nav-brand">
+          <div className="nav-brand-icon">
+            <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8"  y1="2" x2="8"  y2="6"/>
+              <line x1="3"  y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          Gestão Ledores e Fiscais
+          <div className="his-mark">H<span className="dot">·</span>I<span className="dot">·</span>S</div>
+        </div>
+        <div className="nav-actions">
+          <button className={`nav-btn ${activeTab === 'provas' ? 'active' : ''}`} onClick={() => setActiveTab('provas')}>Provas</button>
+          <button className={`nav-btn ${activeTab === 'ganhos' ? 'active' : ''}`} onClick={() => setActiveTab('ganhos')}>$ Ganhos</button>
+          <div className="nav-sep"></div>
+          <button className="nav-avatar-wrap" onClick={() => setActiveTab('perfil')}>
+            <div className="avatar" style={{ background: '#2563eb' }}><span>{iniciais}</span></div>
+            <div className="nav-user-info">
+              <div className="nav-user-name">{nomeLogado}</div>
+              <span className="nav-user-role">Candidato</span>
+            </div>
+          </button>
+        </div>
+      </nav>
+
+      {/* TABS */}
+      <div className="tabs-bar">
+        <button className={`tab ${activeTab === 'aplicadas'    ? 'active' : ''}`} onClick={() => { setActiveTab('aplicadas');    setCandidaturaEmDetalhe(null); }}>
+          Provas Aplicadas {provasAplicadas.length > 0 && <span className="badge bc-blue">{provasAplicadas.length}</span>}
+        </button>
+        <button className={`tab ${activeTab === 'candidaturas' ? 'active' : ''}`} onClick={() => { setActiveTab('candidaturas'); setCandidaturaEmDetalhe(null); }}>
+          Minhas Candidaturas {minhasCandidaturas.length > 0 && <span className="badge bc-green" style={{ background: '#dcfce7', color: '#16a34a' }}>{minhasCandidaturas.length}</span>}
+        </button>
+        <button className={`tab ${activeTab === 'provas'       ? 'active' : ''}`} onClick={() => { setActiveTab('provas');       setCandidaturaEmDetalhe(null); }}>
+          Provas Disponíveis
+        </button>
+        <button className={`tab ${activeTab === 'ganhos'       ? 'active' : ''}`} onClick={() => { setActiveTab('ganhos');       setCandidaturaEmDetalhe(null); }}>
+          Cálculo de Ganhos
+        </button>
+        <button className={`tab ${activeTab === 'ponto'        ? 'active' : ''}`} onClick={() => { setActiveTab('ponto');        setCandidaturaEmDetalhe(null); setScaneando(false); }}>
+          Bater Ponto
+        </button>
+        <button className={`tab ${activeTab === 'perfil'       ? 'active' : ''}`} style={{ marginLeft: 'auto' }} onClick={() => setActiveTab('perfil')}>
+          Meu Perfil
+        </button>
+      </div>
+
+      <main className="page">
+
+        {/* ── PROVAS DISPONÍVEIS ─────────────────────────────── */}
+        {activeTab === 'provas' && (
+          <div className="panel active">
+            <div className="page-header">
+              <div>
+                <h1 className="page-title">Provas Disponíveis</h1>
+                <p className="page-sub">Veja as provas abertas, candidate-se e acompanhe sua reserva.</p>
+              </div>
+            </div>
+            <div className="stats-candidato" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' }}>
+              <div className="stat" style={{ padding: '20px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="stat-ico" style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '24px' }}>📅</div>
+                <div>
+                  <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Provas Previstas</div>
+                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>{provasDisponiveis.length + provasEmReserva.length}</div>
+                </div>
+              </div>
+              <div className="stat" style={{ padding: '20px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="stat-ico" style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', fontSize: '24px' }}>✅</div>
+                <div>
+                  <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Vagas com Disponibilidade</div>
+                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>{totalVagasLivres}</div>
+                </div>
+              </div>
+              <div className="stat" style={{ padding: '20px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="stat-ico" style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px', fontSize: '24px' }}>⏳</div>
+                <div>
+                  <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Em Lista de Reserva</div>
+                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>{provasEmReserva.length}</div>
+                </div>
+              </div>
+            </div>
+            <div className="card">
+              <div className="sub-tabs" style={{ paddingTop: '10px', paddingLeft: '20px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '20px' }}>
+                <button style={{ background: 'none', border: 'none', padding: '12px 0', fontSize: '14px', fontWeight: '600', color: activeSubTab === 'comVagas' ? '#2563eb' : '#64748b', borderBottom: activeSubTab === 'comVagas' ? '2px solid #2563eb' : '2px solid transparent', cursor: 'pointer' }} onClick={() => setActiveSubTab('comVagas')}>⊕ Provas com Vagas</button>
+                <button style={{ background: 'none', border: 'none', padding: '12px 0', fontSize: '14px', fontWeight: '600', color: activeSubTab === 'reserva' ? '#2563eb' : '#64748b', borderBottom: activeSubTab === 'reserva' ? '2px solid #2563eb' : '2px solid transparent', cursor: 'pointer' }} onClick={() => setActiveSubTab('reserva')}>👥 Vagas Preenchidas (Reserva)</button>
+              </div>
+              <div className="tbl-wrap" style={{ padding: '20px 0 0 0' }}>
+                {activeSubTab === 'comVagas' && (
+                  provasDisponiveis.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                      <div style={{ fontSize: '44px', marginBottom: '12px' }}>📭</div>
+                      <h3 style={{ color: '#1e293b', marginBottom: '5px' }}>Nenhuma prova com vagas no momento</h3>
+                      <p style={{ color: '#64748b', fontSize: '14px' }}>Aguardando o lançamento de novos eventos pela coordenação.</p>
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead><tr>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>PROVA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>DATA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>VAGAS</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>VALOR/HORA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>STATUS</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>AÇÃO</th>
+                      </tr></thead>
+                      <tbody>
+                        {provasDisponiveis.map(prova => (
+                          <tr key={prova.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '16px 24px' }}>
+                              <div style={{ fontWeight: '600', color: '#0f172a' }}>{prova.titulo}</div>
+                              <div style={{ fontSize: '12px', color: '#64748b' }}>{prova.detalhes}</div>
+                            </td>
+                            <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.data}</td>
+                            <td style={{ padding: '16px 24px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '80px', height: '6px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                  <div style={{ width: `${prova.vagasTotais > 0 ? (prova.vagasPreenchidas / prova.vagasTotais) * 100 : 0}%`, height: '100%', background: '#3b82f6' }} />
+                                </div>
+                                <span style={{ fontSize: '13px' }}>{prova.vagasPreenchidas}/{prova.vagasTotais}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.valor}</td>
+                            <td style={{ padding: '16px 24px' }}>
+                              <span style={{ border: '1px solid #86efac', background: '#f0fdf4', color: '#16a34a', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>{prova.status}</span>
+                            </td>
+                            <td style={{ padding: '16px 24px' }}>
+                              <button onClick={() => setProvaSelecionada(prova)} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', cursor: 'pointer' }}>Candidatar-se →</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )
+                )}
+                {activeSubTab === 'reserva' && (
+                  provasEmReserva.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                      <div style={{ fontSize: '44px', marginBottom: '12px' }}>⏳</div>
+                      <h3 style={{ color: '#1e293b' }}>Nenhuma prova em lista de reserva</h3>
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead><tr>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>PROVA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>DATA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>OCUPAÇÃO</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>VALOR/HORA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>AÇÃO</th>
+                      </tr></thead>
+                      <tbody>
+                        {provasEmReserva.map(prova => (
+                          <tr key={prova.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '16px 24px' }}>
+                              <div style={{ fontWeight: '600', color: '#0f172a' }}>{prova.titulo}</div>
+                              <div style={{ fontSize: '12px', color: '#64748b' }}>{prova.detalhes}</div>
+                            </td>
+                            <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.data}</td>
+                            <td style={{ padding: '16px 24px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '80px', height: '6px', background: '#64748b', borderRadius: '4px' }} />
+                                <span style={{ fontSize: '13px' }}>{prova.vagasTotais}/{prova.vagasTotais}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.valor}</td>
+                            <td style={{ padding: '16px 24px' }}>
+                              <button onClick={() => setProvaSelecionada(prova)} style={{ background: 'none', border: 'none', color: '#ca8a04', fontWeight: '600', cursor: 'pointer' }}>Entrar na Reserva →</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MINHAS CANDIDATURAS ────────────────────────────── */}
+        {activeTab === 'candidaturas' && (
+          <div className="panel active">
+            {!candidaturaEmDetalhe ? (
+              <>
+                <div className="page-header">
+                  <div>
+                    <h1 className="page-title">Minhas Candidaturas</h1>
+                    <p className="page-sub">Provas confirmadas e em reserva.</p>
+                  </div>
+                </div>
+                <div className="card" style={{ padding: '24px' }}>
+                  {minhasCandidaturas.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                      <div style={{ fontSize: '44px', marginBottom: '12px' }}>📝</div>
+                      <h3 style={{ color: '#475569', fontSize: '16px', fontWeight: '600' }}>Você ainda não possui candidaturas</h3>
+                      <p style={{ color: '#64748b', fontSize: '14px' }}>Acesse <strong>"Provas Disponíveis"</strong> para se inscrever.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {minhasCandidaturas.map(cand => (
+                        <div key={cand.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderLeft: '4px solid #10b981', borderRadius: '8px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: '700', fontSize: '15px', color: '#0f172a', marginBottom: '8px' }}>{cand.titulo}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', color: '#64748b', flexWrap: 'wrap' }}>
+                              <span>📅 {cand.data}</span>
+                              <span>{cand.serie}</span>
+                              <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>{cand.funcao}</span>
+                              <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>{cand.status}</span>
+                              {/* Mostra entrada se já bateu ponto */}
+                              {cand.entrada && cand.entrada !== '--:--' && (
+                                <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', fontSize: '11px' }}>
+                                  🕐 Entrada: {cand.entrada}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <button onClick={() => setCandidaturaEmDetalhe(cand)} style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                              🏠 Meu Dia de Prova
+                            </button>
+                            <button onClick={() => abrirModalCancelamento(cand)} style={{ background: 'transparent', color: '#ef4444', border: 'none', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                              ❌ Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div>
+                <div style={{ marginBottom: '20px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button onClick={() => setCandidaturaEmDetalhe(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}>← Voltar</button>
+                  <span style={{ color: '#cbd5e1' }}>/</span>
+                  <span style={{ color: '#2563eb' }}>Meu Dia de Prova</span>
+                </div>
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '28px', marginBottom: '20px' }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '10px' }}>{candidaturaEmDetalhe.titulo}</h2>
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#64748b', flexWrap: 'wrap' }}>
+                    <span>📅 {candidaturaEmDetalhe.data}</span>
+                    <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>{candidaturaEmDetalhe.funcao}</span>
+                  </div>
+                </div>
+                {candidaturaEmDetalhe.entrada && candidaturaEmDetalhe.entrada !== '--:--' && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#15803d', marginBottom: '8px' }}>🕐 Registro de Ponto</h3>
+                    <div style={{ display: 'flex', gap: '24px', fontSize: '14px' }}>
+                      <span>Entrada: <strong style={{ color: '#16a34a' }}>{candidaturaEmDetalhe.entrada}</strong></span>
+                      <span>Saída: <strong style={{ color: candidaturaEmDetalhe.saida !== '--:--' ? '#ef4444' : '#94a3b8' }}>{candidaturaEmDetalhe.saida}</strong></span>
+                    </div>
+                  </div>
+                )}
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '12px' }}>🏠 Sala Designada</h3>
+                  {candidaturaEmDetalhe.sala ? (
+                    <div style={{ padding: '12px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', color: '#1e40af', fontWeight: '600' }}>
+                      {candidaturaEmDetalhe.sala}
+                    </div>
+                  ) : (
+                    <div style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '13.5px' }}>⏳ Aguardando designação pela coordenação…</div>
+                  )}
+                </div>
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '12px' }}>📄 Observações da Coordenação</h3>
+                  {candidaturaEmDetalhe.observacoes ? (
+                    <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', color: '#334155', fontSize: '14px', lineHeight: '1.6' }}>
+                      {candidaturaEmDetalhe.observacoes}
+                    </div>
+                  ) : (
+                    <div style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '13.5px' }}>Nenhuma observação registrada.</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── PROVAS APLICADAS ───────────────────────────────── */}
+        {activeTab === 'aplicadas' && (
+          <div className="panel active">
+            <div className="page-header">
+              <h1 className="page-title">Provas Aplicadas</h1>
+              <p className="page-sub">Histórico com horários e valores calculados automaticamente.</p>
+            </div>
+            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+              {provasAplicadas.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                  <div style={{ fontSize: '44px', marginBottom: '12px' }}>🕒</div>
+                  <h3 style={{ color: '#475569', fontSize: '16px', fontWeight: '600' }}>Nenhum histórico disponível</h3>
+                  <p style={{ color: '#64748b', fontSize: '14px' }}>Provas aparecem aqui após você bater o ponto de saída.</p>
+                </div>
+              ) : (
+                <>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>PROVA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>DATA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>ENTRADA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>SAÍDA</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>HORAS</th>
+                        <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>FUNÇÃO</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>VALOR</th>
+                        <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>AÇÃO</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {provasAplicadas.map(prova => (
+                        <tr key={prova.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '16px 24px' }}>
+                            <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>{prova.titulo}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>{prova.serie}</div>
+                          </td>
+                          <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.data}</td>
+                          <td style={{ padding: '16px 24px', color: '#16a34a', fontSize: '14px', fontWeight: '600' }}>{prova.entrada}</td>
+                          <td style={{ padding: '16px 24px', color: '#ef4444', fontSize: '14px', fontWeight: '600' }}>{prova.saida}</td>
+                          <td style={{ padding: '16px 24px', color: '#0f172a', fontSize: '14px', fontWeight: '700' }}>
+                            {prova.horasTrabalhadas > 0 ? `${prova.horasTrabalhadas.toFixed(1)}h` : '--'}
+                          </td>
+                          <td style={{ padding: '16px 24px', textAlign: 'center' }}>
+                            <span style={{ background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
+                              {prova.funcao}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px 24px', color: '#16a34a', fontSize: '14px', fontWeight: '700' }}>
+                            {prova.horasTrabalhadas > 0 ? formatarMoeda(prova.horasTrabalhadas * valorFixoHora) : '--'}
+                          </td>
+                          <td style={{ padding: '16px 24px', textAlign: 'center' }}>
+                            <button onClick={() => abrirModalRelato(prova)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Relatar</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{ background: '#f8fafc', padding: '20px 24px', display: 'flex', justifyContent: 'flex-end', gap: '40px', borderTop: '1px solid #e5e7eb' }}>
+                    <div style={{ fontSize: '14px', color: '#475569' }}>Total de horas: <strong style={{ color: '#0f172a' }}>{totalHorasHistorico.toFixed(1)}h</strong></div>
+                    <div style={{ fontSize: '14px', color: '#475569' }}>Total a receber: <strong style={{ color: '#16a34a', fontSize: '16px' }}>{formatarMoeda(totalReceberHistorico)}</strong></div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── CÁLCULO DE GANHOS ──────────────────────────────── */}
+        {activeTab === 'ganhos' && (
+          <div className="panel active">
+            <div className="page-header">
+              <h1 className="page-title">Cálculo de Ganhos</h1>
+              <p className="page-sub">Acompanhe seus recebimentos e projeções.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
+              <div className="card" style={{ flex: 1, padding: '32px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px' }}>Total a Receber</div>
+                <div style={{ fontSize: '36px', fontWeight: '700', color: '#16a34a' }}>{formatarMoeda(totalReceberHistorico)}</div>
+                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>{provasAplicadas.length} prova(s) concluída(s)</div>
+              </div>
+              <div className="card" style={{ flex: 1, padding: '32px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px' }}>Próximo Pagamento</div>
+                <div style={{ fontSize: '36px', fontWeight: '700', color: '#0f172a' }}>{formatarMoeda(totalReceberHistorico)}</div>
+                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Previsto para {calcularProximoPagamento()}</div>
+              </div>
+            </div>
+            {provasAplicadas.length > 0 && (
+              <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
+                  Detalhamento por Prova
+                </div>
+                {provasAplicadas.map((prova, index) => (
+                  <div key={prova.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 24px', borderBottom: index < provasAplicadas.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
+                    <div>
+                      <div style={{ fontSize: '15px', color: '#334155', fontWeight: '500' }}>{prova.titulo}</div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                        {prova.horasTrabalhadas.toFixed(1)}h × R$ {valorFixoHora} · {prova.data}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
+                      {formatarMoeda(prova.horasTrabalhadas * valorFixoHora)}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ padding: '20px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
+                  <strong style={{ color: '#0f172a' }}>Total</strong>
+                  <strong style={{ color: '#16a34a', fontSize: '18px' }}>{formatarMoeda(totalReceberHistorico)}</strong>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── BATER PONTO ────────────────────────────────────── */}
+        {activeTab === 'ponto' && (
+          <div className="panel active">
+            <div className="page-header">
+              <h1 className="page-title">Bater Ponto</h1>
+              <p className="page-sub">Registre sua entrada e saída no dia da prova.</p>
+            </div>
+
+            {/* Aviso se não tem prova hoje */}
+            {!idEventoHoje && minhasCandidaturas.length > 0 && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde047', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', fontSize: '13px', color: '#92400e' }}>
+                ⚠️ Você não tem prova agendada para hoje. O botão usará sua candidatura mais recente para fins de teste.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '20px', gap: '24px' }}>
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '40px 60px', textAlign: 'center', width: '100%', maxWidth: '420px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                {statusPonto !== 'concluido' ? (
+                  <>
+                    <div style={{ fontSize: '48px', fontWeight: '800', color: '#0f172a', letterSpacing: '-1px', marginBottom: '12px' }}>
+                      {horaAtual.toLocaleTimeString('pt-BR')}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '32px', fontWeight: '500' }}>
+                      {formatarData(horaAtual)}
+                    </div>
+                    <button onClick={handleRegistrarPonto} disabled={scaneando}
+                      style={{ width: '100%', background: scaneando ? '#94a3b8' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', cursor: scaneando ? 'default' : 'pointer', letterSpacing: '0.5px' }}>
+                      {statusPonto === 'entrada' ? 'REGISTRAR PONTO' : 'REGISTRAR SAÍDA'}
+                    </button>
+                    {statusPonto === 'saida' && !scaneando && (
+                      <p style={{ marginTop: '16px', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
+                        Obrigatório escanear o QR Code da coordenação.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ padding: '20px 0' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                    <h3 style={{ color: '#16a34a', fontSize: '20px', marginBottom: '8px' }}>Turno Concluído!</h3>
+                    <p style={{ color: '#64748b', fontSize: '14px' }}>Sua saída foi validada. Veja em "Provas Aplicadas".</p>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ width: '100%', maxWidth: '800px' }}>
+                {scaneando ? (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Escanear QR Code</h3>
+                      <button onClick={() => setScaneando(false)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>[ X ] Cancelar</button>
+                    </div>
+                    <div onClick={confirmarScaneamentoQRCode} style={{ width: '100%', height: '300px', background: '#111827', borderRadius: '8px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', color: '#fff', fontSize: '14px', textAlign: 'center', padding: '20px' }}>
+                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>📷</div>
+                        Câmera Ativa<br/>
+                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>Aponte para o QR Code na mesa da coordenação</span>
+                      </div>
+                      <div style={{ position: 'absolute', width: '100%', height: '2px', background: '#ef4444', top: '50%', boxShadow: '0 0 10px #ef4444' }} />
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#64748b', marginTop: '12px', fontWeight: '600' }}>[Modo de Teste: Clique na tela preta para validar]</p>
+                  </div>
+                ) : (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Registros de Hoje</h3>
+                    {registrosDeHoje.length === 0 ? (
+                      <div style={{ border: '1px dashed #e5e7eb', borderRadius: '8px', padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                        Nenhum ponto registrado hoje.
+                      </div>
+                    ) : (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                            <th style={{ textAlign: 'left', padding: '12px', color: '#64748b', fontWeight: '600' }}>TIPO</th>
+                            <th style={{ textAlign: 'left', padding: '12px', color: '#64748b', fontWeight: '600' }}>HORÁRIO</th>
+                            <th style={{ textAlign: 'left', padding: '12px', color: '#64748b', fontWeight: '600' }}>STATUS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {registrosDeHoje.map((reg, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '12px', textTransform: 'capitalize', fontWeight: '600', color: reg.tipo === 'entrada' ? '#2563eb' : '#f59e0b' }}>{reg.tipo}</td>
+                              <td style={{ padding: '12px', color: '#0f172a', fontWeight: '500' }}>{reg.hora}</td>
+                              <td style={{ padding: '12px', color: '#64748b' }}>{reg.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MEU PERFIL ─────────────────────────────────────── */}
+        {activeTab === 'perfil' && (
+          <div className="panel active">
+            <div className="page-header">
+              <h1 className="page-title">Meu Perfil</h1>
+              <p className="page-sub">Atualize seus dados e foto de perfil.</p>
+            </div>
+            <div className="card" style={{ padding: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+                <div style={{ width: '80px', height: '80px', fontSize: '28px', background: '#2563eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: '700' }}>{iniciais}</div>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '18px', color: '#111827', marginBottom: '4px' }}>{perfilFormData.nome}</div>
+                  <div style={{ fontSize: '14px', color: '#6b7280' }}>{perfilLogado} · {perfilFormData.email}</div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                {[
+                  { label: 'NOME COMPLETO', name: 'nome',     type: 'text'  },
+                  { label: 'CPF',           name: 'cpf',      type: 'text'  },
+                  { label: 'E-MAIL',        name: 'email',    type: 'email' },
+                  { label: 'CELULAR',       name: 'celular',  type: 'text'  },
+                  { label: 'CHAVE PIX',     name: 'chavePix', type: 'text'  },
+                  { label: 'BANCO',         name: 'bancoNome',type: 'text'  },
+                ].map(f => (
+                  <div key={f.name}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', display: 'block', marginBottom: '8px' }}>{f.label}</label>
+                    <input type={f.type} name={f.name} value={perfilFormData[f.name]} onChange={handlePerfilChange}
+                      style={{ border: '1px solid #d1d5db', padding: '12px', borderRadius: '8px', width: '100%', outline: 'none' }} />
+                  </div>
+                ))}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', display: 'block', marginBottom: '8px' }}>NOVA SENHA</label>
+                  <input type="password" name="novaSenha" placeholder="Deixe em branco para não alterar" value={perfilFormData.novaSenha} onChange={handlePerfilChange}
+                    style={{ border: '1px solid #d1d5db', padding: '12px', borderRadius: '8px', width: '100%', outline: 'none' }} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', display: 'block', marginBottom: '8px' }}>CONFIRMAR SENHA</label>
+                  <input type="password" name="confirmarSenha" placeholder="Repita a nova senha" value={perfilFormData.confirmarSenha} onChange={handlePerfilChange}
+                    style={{ border: '1px solid #d1d5db', padding: '12px', borderRadius: '8px', width: '100%', outline: 'none' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                <button style={{ padding: '12px 24px', border: '1px solid #d1d5db', background: '#fff', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#374151', cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={handleSalvarPerfil} style={{ padding: '12px 24px', border: 'none', background: '#2563eb', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', cursor: 'pointer' }}>Salvar Alterações</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* MODAL — CONFIRMAR CANDIDATURA */}
+      {provaSelecionada && (
+        <div className="overlay open" onClick={() => setProvaSelecionada(null)}>
+          <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+            <h2 className="modal-title" style={{ fontSize: '20px' }}>Confirmar Candidatura</h2>
+            <p className="modal-sub">{provaSelecionada.titulo} · {provaSelecionada.data}</p>
+            <div style={{ background: '#eff6ff', padding: '16px', borderRadius: '8px', marginTop: '16px', border: '1px solid #bfdbfe' }}>
+              <strong style={{ display: 'block', color: '#1e40af', marginBottom: '4px' }}>Função: {perfilLogado} · {provaSelecionada.valor}</strong>
+              <span style={{ color: '#1e3a8a', fontSize: '13px' }}>Ao confirmar, você constará na lista desta prova.</span>
+            </div>
+            <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button className="btn-outline" onClick={() => setProvaSelecionada(null)}>Cancelar</button>
+              <button className="btn-primary" onClick={confirmarCandidatura}>Confirmar →</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — CANCELAMENTO */}
+      {candidaturaParaCancelar && (
+        <div className="overlay open" onClick={() => setCandidaturaParaCancelar(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '500px', padding: '32px', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#ef4444', marginBottom: '16px' }}>Cancelar Participação</h2>
+            <div style={{ border: '1px solid #f97316', borderRadius: '8px', padding: '16px', marginBottom: '24px' }}>
+              <strong style={{ display: 'block', color: '#c2410c', fontSize: '13px', marginBottom: '4px' }}>Atenção antes de cancelar.</strong>
+              <span style={{ color: '#4b5563', fontSize: '13px' }}>Cancelamentos com menos de <strong style={{ color: '#c2410c' }}>48 horas</strong> podem afetar sua avaliação.</span>
+            </div>
+            <strong style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: '#1f2937' }}>Qual o motivo do cancelamento?</strong>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+              {['Problema de saúde', 'Emergência familiar', 'Conflito de agenda', 'Problema de transporte', 'Outro motivo'].map(motivo => (
+                <label key={motivo} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', border: `1px solid ${motivoCancelamento === motivo ? '#fca5a5' : '#e5e7eb'}`, borderRadius: '8px', cursor: 'pointer', background: motivoCancelamento === motivo ? '#fef2f2' : '#fff' }}>
+                  <input type="radio" name="motivo" value={motivo} checked={motivoCancelamento === motivo} onChange={e => setMotivoCancelamento(e.target.value)} style={{ accentColor: '#ef4444' }} />
+                  <span style={{ fontSize: '14px', color: '#374151' }}>{motivo}</span>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={() => setCandidaturaParaCancelar(null)} style={{ padding: '10px 16px', border: '1px solid #d1d5db', background: '#fff', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Manter inscrição</button>
+              <button onClick={efetivarCancelamento} style={{ padding: '10px 16px', border: 'none', background: '#fee2e2', borderRadius: '6px', fontSize: '14px', fontWeight: '600', color: '#b91c1c', cursor: 'pointer' }}>Confirmar Cancelamento</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — RELATAR */}
+      {provaParaRelatar && (
+        <div className="overlay open" onClick={fecharModalRelato}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '500px', padding: '32px', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', margin: '0 0 8px 0' }}>Relatar Ocorrência</h2>
+            <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 24px 0' }}>O relato será enviado à coordenação.</p>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '12px', fontWeight: '700', color: '#94a3b8', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Tipo</label>
+              <select value={relatoForm.tipo} onChange={e => setRelatoForm({ ...relatoForm, tipo: e.target.value })}
+                style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', color: '#334155', fontSize: '14px', backgroundColor: '#fff' }}>
+                <option value="">Selecione</option>
+                <option>Atraso de Candidato</option>
+                <option>Falta de Material na Sala</option>
+                <option>Problema de Infraestrutura</option>
+                <option>Suspeita de Fraude</option>
+                <option>Emergência Médica</option>
+                <option>Outro</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: '32px' }}>
+              <label style={{ fontSize: '12px', fontWeight: '700', color: '#94a3b8', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Descrição</label>
+              <textarea value={relatoForm.descricao} onChange={e => setRelatoForm({ ...relatoForm, descricao: e.target.value })}
+                placeholder="Descreva o que aconteceu..." rows="5"
+                style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', resize: 'none', color: '#334155', fontSize: '14px', fontFamily: 'inherit' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={fecharModalRelato} style={{ padding: '12px 24px', border: '1px solid #e2e8f0', background: '#fff', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={enviarRelato} style={{ padding: '12px 24px', border: 'none', background: '#2563eb', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', cursor: 'pointer' }}>Enviar Relato</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};

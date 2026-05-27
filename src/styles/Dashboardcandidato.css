@@ -1,0 +1,366 @@
+/* src/styles/DashboardCandidato.css */
+
+.dash-candidato-container {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--gray-50);
+  min-height: 100vh;
+  color: var(--gray-900);
+}
+
+/* ══ LAYOUT EMPILHADO DOS CARDS ══ */
+/* Esta classe força os cards a ficarem um embaixo do outro, ocupando a tela toda */
+/* ══ LAYOUT HORIZONTAL DOS CARDS ══ */
+.stats-candidato {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 colunas iguais lado a lado */
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+/* Responsividade: Garante que no telemóvel fique vertical para não esmagar */
+@media (max-width: 768px) {
+  .stats-candidato {
+    grid-template-columns: 1fr; 
+  }
+}
+
+/* ══ BARRA DE PROGRESSO ══ */
+.prog-wrap { display: flex; align-items: center; gap: 10px; min-width: 150px; }
+.prog-bar { flex: 1; height: 6px; background: var(--gray-200); border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 99px; background: var(--blue); transition: width 0.3s ease; }
+.prog-lbl { font-size: 12px; color: var(--gray-500); white-space: nowrap; }
+
+/* ══ BADGES E STATUS ══ */
+.st-aberta { background: var(--green-soft); color: var(--green); }
+
+/* ══ BOTÃO CANDIDATAR ══ */
+.btn-candidatar {
+  color: var(--blue); font-weight: 600; font-size: 13.5px; text-decoration: none;
+  background: none; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; transition: gap 0.2s;
+}
+.btn-candidatar:hover { gap: 8px; }
+
+/* ══ MODAL DE CONFIRMAÇÃO COMPACTO ══ */
+.modal-sm { max-width: 520px !important; padding: 32px !important; }
+.info-box-blue {
+  background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+  padding: 16px 20px; color: #1d4ed8; font-size: 13.5px; line-height: 1.6; margin-bottom: 24px;
+}
+.info-box-blue strong { font-weight: 600; display: block; margin-bottom: 4px; }
+
+/* ══ RESPONSIVIDADE CELULAR ══ */
+@media (max-width: 768px) {
+  .dash-candidato-container .sub-tabs {
+    overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 5px; 
+  }
+  .btn-candidatar { padding: 10px 0; font-size: 14px; }
+  .prog-wrap { min-width: 100px; }
+}
+
+/* ══════════════════════════════════════════
+   ABA: PROVAS APLICADAS E RELATOS
+══════════════════════════════════════════ */
+
+/* Cores de Entrada (Verde) e Saída (Vermelho) */
+.time-in { color: #16a34a; font-weight: 600; }
+.time-out { color: #dc2626; font-weight: 600; }
+.font-bold-green { color: #16a34a; font-weight: 700; }
+.font-bold-dark { font-weight: 700; color: var(--gray-900); }
+
+/* Rodapé com o total a receber */
+.table-footer {
+  background: var(--gray-50);
+  padding: 16px 24px;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: flex-end;
+  gap: 32px;
+  font-size: 14px;
+}
+
+/* Botão de Relatar Ocorrência (Cinza) */
+.btn-relatar {
+  color: var(--gray-400);
+  font-weight: 500;
+  font-size: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.2s;
+}
+.btn-relatar:hover { color: var(--gray-700); }
+
+/* Textarea do Modal de Relato */
+.obs-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+  color: var(--gray-900);
+  transition: border-color 0.2s;
+}
+.obs-textarea:focus { border-color: var(--blue); }
+.obs-textarea::placeholder { color: var(--gray-400); }
+
+/* ══════════════════════════════════════════
+   ABA: MINHAS CANDIDATURAS E DIA DE PROVA
+══════════════════════════════════════════ */
+
+/* Cartões da lista de candidaturas */
+.candidatura-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.candidatura-card.border-amber { border-left: 4px solid var(--amber); }
+.candidatura-card.border-green { border-left: 4px solid var(--green); }
+
+/* Badges de Status (Na Reserva / Confirmado) */
+.badge-reserva { background: var(--amber-soft); color: var(--amber); font-weight: 600; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; }
+.badge-confirmado { background: var(--green-soft); color: var(--green); font-weight: 600; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; }
+
+/* Botão Meu Dia de Prova (Azul Sólido) */
+.btn-dia-prova {
+  background: var(--blue); color: var(--white);
+  border: none; border-radius: 6px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.2s;
+}
+.btn-dia-prova:hover { background: #1d4ed8; }
+
+/* Botão Cancelar (Texto Vermelho) */
+.btn-text-danger {
+  color: var(--red); background: none; border: none; font-size: 13px;
+  font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+}
+.btn-text-danger:hover { text-decoration: underline; }
+
+/* Breadcrumb (Voltar às candidaturas) */
+.breadcrumb {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13.5px; color: var(--gray-500); margin-bottom: 24px;
+}
+.breadcrumb-link {
+  color: var(--gray-500); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: color 0.2s;
+}
+.breadcrumb-link:hover { color: var(--navy); }
+
+/* Cards do Detalhe do Dia de Prova */
+.dia-prova-card {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm); margin-bottom: 16px; overflow: hidden;
+}
+.dia-prova-head {
+  padding: 14px 20px; border-bottom: 1px solid var(--gray-100);
+  font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+}
+.dia-prova-body { padding: 20px; font-size: 14px; color: var(--gray-700); line-height: 1.6; }
+
+/* Badge da Sala Preenchida (Azul Claro) */
+.sala-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--blue-soft); border: 1px solid #bfdbfe;
+  color: #1d4ed8; font-weight: 600; font-size: 14px;
+  padding: 10px 16px; border-radius: 6px;
+}
+
+/* ══════════════════════════════════════════
+   ABA: BATER PONTO
+══════════════════════════════════════════ */
+
+.ponto-wrapper {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 24px; padding: 20px 0;
+}
+
+.ponto-card {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--radius); padding: 32px 40px;
+  text-align: center; width: 100%; max-width: 500px; box-shadow: var(--shadow);
+}
+
+.ponto-header {
+  font-size: 13px; font-weight: 600; color: var(--blue);
+  display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px;
+}
+
+/* O Relógio Digital */
+.ponto-relogio {
+  font-family: monospace; font-size: 54px; font-weight: 700;
+  color: var(--navy); line-height: 1; margin-bottom: 8px; letter-spacing: -2px;
+}
+
+.ponto-data { font-size: 13.5px; color: var(--gray-500); margin-bottom: 24px; }
+
+.ponto-horas-realizadas {
+  background: var(--gray-50); border: 1px solid var(--gray-100);
+  border-radius: var(--radius-sm); padding: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+}
+
+.ponto-horas-lbl { font-size: 12px; color: var(--blue); font-weight: 600; }
+.ponto-horas-val { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--gray-900); }
+
+/* Seletores de Entrada e Saída */
+.ponto-tipo-lbl {
+  font-size: 13px; font-weight: 700; color: var(--gray-900);
+  margin: 24px 0 12px; text-align: center; width: 100%; max-width: 500px;
+}
+
+.ponto-selectors {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  margin-bottom: 24px; width: 100%; max-width: 500px;
+}
+
+.type-btn {
+  background: var(--white); border: 2px solid var(--gray-200);
+  border-radius: var(--radius-sm); padding: 20px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; transition: all 0.2s;
+}
+.type-btn:hover { border-color: var(--gray-300); background: var(--gray-50); }
+
+.type-btn-icon {
+  width: 32px; height: 32px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.type-btn-text { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Estados Ativos dos Botões */
+.type-btn.active.entrada { border-color: var(--green); background: var(--green-soft); }
+.type-btn.active.entrada .type-btn-icon { background: var(--green); color: var(--white); }
+.type-btn.active.entrada .type-btn-text { color: var(--green); }
+
+.type-btn.active.saida { border-color: var(--amber); background: var(--amber-soft); }
+.type-btn.active.saida .type-btn-icon { background: var(--amber); color: var(--white); }
+.type-btn.active.saida .type-btn-text { color: var(--amber); }
+
+/* Estados Inativos */
+.type-btn:not(.active) .type-btn-icon { background: var(--gray-100); color: var(--gray-400); }
+.type-btn:not(.active) .type-btn-text { color: var(--gray-400); }
+
+/* Botão Registar Ponto */
+.btn-registrar-ponto {
+  background: var(--navy); color: var(--white); border: none;
+  border-radius: var(--radius-sm); padding: 16px; font-size: 14px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  width: 100%; max-width: 500px; cursor: pointer; transition: background 0.2s;
+}
+.btn-registrar-ponto:hover { background: var(--navy-light); }
+
+/* Card Registros de Hoje (Segunda Imagem) */
+.registros-card {
+  background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius);
+  padding: 24px; width: 100%; max-width: 500px; text-align: center;
+}
+.registros-title { font-size: 16px; font-weight: 600; color: var(--blue); margin-bottom: 20px; }
+.registro-row {
+  background: var(--gray-50); padding: 12px 24px; display: flex; align-items: center;
+  justify-content: center; gap: 20px; margin-bottom: 8px; font-weight: 600; color: var(--gray-700);
+}
+
+/* ══════════════════════════════════════════
+   ABA: PROVAS DISPONÍVEIS (SUB-ABA RESERVA)
+══════════════════════════════════════════ */
+
+/* Barra de progresso cheia (Verde) */
+.prog-fill.full {
+  background: var(--green);
+}
+.prog-subtext {
+  font-size: 11px;
+  color: var(--amber);
+  margin-top: 4px;
+  display: block;
+  font-weight: 600;
+}
+
+/* Status e Ações da Reserva */
+.st-reserva { background: var(--amber-soft); color: var(--amber); }
+.st-cheia { background: var(--amber-soft); color: var(--amber); }
+
+.btn-reserva {
+  color: var(--amber);
+  font-weight: 600;
+  font-size: 13.5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: gap 0.2s;
+}
+.btn-reserva:hover { gap: 8px; }
+
+.acao-inscrito {
+  color: var(--gray-400);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+/* Alerta Amarelo de Informação */
+.alert-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  padding: 16px 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13.5px;
+}
+.alert-warning strong {
+  color: #92400e;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  /* Tudo que você colocar aqui dentro só afeta o celular! */
+  .tbl-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Deixa a rolagem suave no iPhone */
+  }
+
+  .stats-candidato {
+    grid-template-columns: 1fr !important; /* Transforma as 3 colunas em 1 coluna só */
+  }
+  
+  /* Se você tiver uma div com display: flex que fica lado a lado */
+  .painel-duplo {
+    flex-direction: column;
+  }
+
+  .tabs-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 5px; /* Espaço para a barrinha de rolagem invisível */
+  }
+  
+  button {
+    min-height: 48px; /* Facilita o clique no celular */
+  }
+  
+  .page {
+    padding: 16px; /* Diminui o respiro das laterais para ganhar espaço de tela */
+  }
+
+}

@@ -1,0 +1,347 @@
+/* Container Principal */
+.cadastro-container {
+  min-height: 100vh;
+  background-color: #FAFAFA;
+  font-family: 'Inter', sans-serif; /* Ajuste para a fonte do seu projeto */
+}
+
+/* Header */
+.cadastro-header {
+  background-color: #1a1e36; /* Azul escuro do topo */
+  height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+}
+
+.btn-voltar {
+  color: #fff;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+/* Conteúdo centralizado */
+.cadastro-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  background-color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-top: 20px;
+  border-radius: 8px;
+}
+
+/* Títulos */
+.cadastro-titles {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.badge-novo {
+  background-color: #F1E5E5;
+  color: #8C3A3A;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.cadastro-titles h1 {
+  font-size: 32px;
+  color: #1A1A1A;
+  margin: 15px 0 10px;
+  font-family: 'Playfair Display', serif; /* A fonte serifada do "Criar sua conta" */
+}
+
+.cadastro-titles p {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Stepper Visual */
+.stepper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 50px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #888;
+}
+
+.step.active {
+  color: #8C3A3A;
+  font-weight: bold;
+}
+
+.step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #1a1e36;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.step.active .step-num {
+  background-color: #8C3A3A;
+}
+
+.step-line {
+  height: 1px;
+  width: 40px;
+  background-color: #ccc;
+  margin: 0 15px;
+}
+
+/* Seções e Cards */
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.section-num {
+  background-color: #F1E5E5;
+  color: #8C3A3A;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  margin-right: 10px;
+}
+
+.section-subtitle {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 20px;
+  margin-left: 34px;
+}
+
+.cards-conta {
+  display: flex;
+  gap: 20px;
+  margin-left: 34px;
+}
+
+.card-conta {
+  flex: 1;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.card-conta:hover {
+  border-color: #8C3A3A;
+}
+
+.card-conta.active {
+  border: 2px solid #8C3A3A;
+  background-color: #FCF9F9;
+}
+
+.card-icon {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.card-conta h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.card-conta p {
+  font-size: 11px;
+  color: #666;
+}
+
+.dot-active {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  background-color: #8C3A3A;
+  border-radius: 50%;
+}
+
+/* Inputs e Formulários */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+.input-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.input-group input, 
+.input-group select, 
+.input-group textarea {
+  width: 100%;
+  padding: 12px 15px;
+  background-color: #EFEFEF;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.input-group input:focus, 
+.input-group select:focus, 
+.input-group textarea:focus {
+  outline: none;
+  border-color: #1a1e36;
+  background-color: #fff;
+}
+
+/* Upload (Dropzone) */
+.upload-box label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.dropzone {
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  background-color: #FAFAFA;
+  position: relative;
+  cursor: pointer;
+}
+
+.dropzone input[type="file"] {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dropzone p { margin: 10px 0 5px; font-size: 14px; font-weight: 500; }
+.dropzone small { color: #888; font-size: 12px; }
+
+/* Chips de Seleção */
+.chips-container label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.chips-row {
+  display: flex;
+  gap: 10px;
+}
+
+.multi-wrap {
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 8px 16px;
+  background-color: #F5F5F5;
+  border: 1px solid #E5E5E5;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  transition: all 0.2s;
+}
+
+.chip:hover {
+  background-color: #EAEAEA;
+}
+
+.chip.active {
+  background-color: #F1E5E5;
+  border-color: #8C3A3A;
+  color: #8C3A3A;
+  font-weight: 600;
+}
+
+/* Checkbox Termos */
+.checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+}
+
+.checkbox-group label {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.5;
+}
+
+/* Botão Submit */
+.submit-area {
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: #1a1e36;
+  color: white;
+  border: none;
+  padding: 15px 40px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  max-width: 400px;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #121526;
+}
+
+.login-link {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #666;
+}
+
+.login-link a {
+  color: #1a1e36;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Utilitários */
+.mt-20 { margin-top: 20px; }
+.mt-40 { margin-top: 40px; }
