@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 1. Configuração do Axios
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5074/api'
+  baseURL: import.meta.env.VITE_API_URL
 });
 
 // Interceptor para o Token
