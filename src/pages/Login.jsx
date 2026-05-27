@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuth } from '../context/Authcontext.jsx';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input } from "../components/Input.jsx";
 import '../styles/Login.css';
