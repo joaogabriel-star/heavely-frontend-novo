@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/Dashboardcoor.css';
 import api, { eventoService, usuarioService } from '../services/api'; 
+import { LayoutDashboard, UserCheck, Users, FileText, User } from 'lucide-react';
 
 export const DashboardCoord = () => {
   
@@ -386,15 +387,45 @@ export const DashboardCoord = () => {
 
       {/* TABS */}
       <div className="tabs-bar">
-        <button className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveTab('dashboard'); setEventoEmDetalhe(null); }}>Dashboard</button>
-        <button className={`tab ${activeTab === 'aprovacao' ? 'active' : ''}`} onClick={() => setActiveTab('aprovacao')}>
-          Aprovar Candidatos <span className="badge bc-red">{candidatosPendentes.length}</span>
-        </button>
-        <button className={`tab ${activeTab === 'membros'   ? 'active' : ''}`} onClick={() => setActiveTab('membros')}>
-          Membros e Funções <span className="badge bc-blue">{membrosAtivos.length}</span>
-        </button>
-        <button className={`tab ${activeTab === 'perfil'    ? 'active' : ''}`} onClick={() => setActiveTab('perfil')}>Meu Perfil</button>
-      </div>
+  <button className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveTab('dashboard'); setEventoEmDetalhe(null); }}>
+    <div className="icon-container">
+      <LayoutDashboard size={24} strokeWidth={1.5} />
+    </div>
+    <span className="tab-label">Dashboard</span>
+  </button>
+
+  <button className={`tab ${activeTab === 'aprovacao' ? 'active' : ''}`} onClick={() => setActiveTab('aprovacao')}>
+    <div className="icon-container">
+      <UserCheck size={24} strokeWidth={1.5} />
+      {/* A bolinha só aparece se houver pendências */}
+      {candidatosPendentes.length > 0 && (
+        <span className="badge-flutuante">{candidatosPendentes.length}</span>
+      )}
+    </div>
+    <span className="tab-label">Aprovar</span>
+  </button>
+
+  <button className={`tab ${activeTab === 'membros' ? 'active' : ''}`} onClick={() => setActiveTab('membros')}>
+    <div className="icon-container">
+      <Users size={24} strokeWidth={1.5} />
+    </div>
+    <span className="tab-label">Membros</span>
+  </button>
+
+  <button className={`tab ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => setActiveTab('relatorios')}>
+    <div className="icon-container">
+      <FileText size={24} strokeWidth={1.5} />
+    </div>
+    <span className="tab-label">Relatórios</span>
+  </button>
+
+  <button className={`tab ${activeTab === 'perfil' ? 'active' : ''}`} onClick={() => setActiveTab('perfil')}>
+    <div className="icon-container">
+      <User size={24} strokeWidth={1.5} />
+    </div>
+    <span className="tab-label">Perfil</span>
+  </button>
+</div>
 
       <main className="page">
 

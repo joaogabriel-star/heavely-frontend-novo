@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import '../styles/Dashboardcoor.css';
 import '../styles/Dashboardcandidato.css';
 import api, { eventoService } from '../services/api';
+import { LayoutDashboard, UserCheck, Users, FileText, User, FileCheck, Search, Wallet, Clock} from 'lucide-react';
 
 export const DashboardCandidato = () => {
 
@@ -426,25 +427,63 @@ if (checkOut) {
 
       {/* TABS */}
       <div className="tabs-bar">
-        <button className={`tab ${activeTab === 'aplicadas'    ? 'active' : ''}`} onClick={() => { setActiveTab('aplicadas');    setCandidaturaEmDetalhe(null); }}>
-          Provas Aplicadas {provasAplicadas.length > 0 && <span className="badge bc-blue">{provasAplicadas.length}</span>}
-        </button>
-        <button className={`tab ${activeTab === 'candidaturas' ? 'active' : ''}`} onClick={() => { setActiveTab('candidaturas'); setCandidaturaEmDetalhe(null); }}>
-          Minhas Candidaturas {minhasCandidaturas.length > 0 && <span className="badge bc-green" style={{ background: '#dcfce7', color: '#16a34a' }}>{minhasCandidaturas.length}</span>}
-        </button>
-        <button className={`tab ${activeTab === 'provas'       ? 'active' : ''}`} onClick={() => { setActiveTab('provas');       setCandidaturaEmDetalhe(null); }}>
-          Provas Disponíveis
-        </button>
-        <button className={`tab ${activeTab === 'ganhos'       ? 'active' : ''}`} onClick={() => { setActiveTab('ganhos');       setCandidaturaEmDetalhe(null); }}>
-          Cálculo de Ganhos
-        </button>
-        <button className={`tab ${activeTab === 'ponto'        ? 'active' : ''}`} onClick={() => { setActiveTab('ponto');        setCandidaturaEmDetalhe(null); setScaneando(false); }}>
-          Bater Ponto
-        </button>
-        <button className={`tab ${activeTab === 'perfil'       ? 'active' : ''}`} style={{ marginLeft: 'auto' }} onClick={() => setActiveTab('perfil')}>
-          Meu Perfil
-        </button>
-      </div>
+  {/* 1. Provas Aplicadas */}
+  <button className={`tab ${activeTab === 'aplicadas' ? 'active' : ''}`} onClick={() => { setActiveTab('aplicadas'); setCandidaturaEmDetalhe(null); }}>
+    <div className="icon-container">
+      <FileCheck size={24} strokeWidth={1.5} />
+      {/* Bolinha Azul */}
+      {provasAplicadas.length > 0 && (
+        <span className="badge-flutuante" style={{ backgroundColor: '#3b82f6' }}>{provasAplicadas.length}</span>
+      )}
+    </div>
+    <span className="tab-label">Aplicadas</span>
+  </button>
+
+  {/* 2. Minhas Candidaturas */}
+  <button className={`tab ${activeTab === 'candidaturas' ? 'active' : ''}`} onClick={() => { setActiveTab('candidaturas'); setCandidaturaEmDetalhe(null); }}>
+    <div className="icon-container">
+      <FileText size={24} strokeWidth={1.5} />
+      {/* Bolinha Verde */}
+      {minhasCandidaturas.length > 0 && (
+        <span className="badge-flutuante" style={{ backgroundColor: '#16a34a' }}>{minhasCandidaturas.length}</span>
+      )}
+    </div>
+    <span className="tab-label">Candidaturas</span>
+  </button>
+
+  {/* 3. Provas Disponíveis */}
+  <button className={`tab ${activeTab === 'provas' ? 'active' : ''}`} onClick={() => { setActiveTab('provas'); setCandidaturaEmDetalhe(null); }}>
+    <div className="icon-container">
+      <Search size={24} strokeWidth={1.5} />
+    </div>
+    <span className="tab-label">Disponíveis</span>
+  </button>
+
+  {/* 4. Cálculo de Ganhos */}
+  <button className={`tab ${activeTab === 'ganhos' ? 'active' : ''}`} onClick={() => { setActiveTab('ganhos'); setCandidaturaEmDetalhe(null); }}>
+    <div className="icon-container">
+      <Wallet size={24} strokeWidth={1.5} />
+    </div>
+    <span className="tab-label">Ganhos</span>
+  </button>
+
+  {/* 5. Bater Ponto */}
+  <button className={`tab ${activeTab === 'ponto' ? 'active' : ''}`} onClick={() => { setActiveTab('ponto'); setCandidaturaEmDetalhe(null); setScaneando(false); }}>
+    <div className="icon-container">
+      <Clock size={24} strokeWidth={1.5} />
+    </div>
+    <span className="tab-label">Ponto</span>
+  </button>
+
+  {/* 6. Meu Perfil */}
+  {/* No desktop mantém o marginLeft: auto, mas o CSS abaixo vai anulá-lo no celular */}
+  <button className={`tab ${activeTab === 'perfil' ? 'active' : ''}`} style={{ marginLeft: 'auto' }} onClick={() => setActiveTab('perfil')}>
+    <div className="icon-container">
+      <User size={24} strokeWidth={1.5} />
+    </div>
+    <span className="tab-label">Perfil</span>
+  </button>
+</div>
 
       <main className="page">
 
@@ -462,21 +501,21 @@ if (checkOut) {
                 <div className="stat-ico" style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '24px' }}>📅</div>
                 <div>
                   <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Provas Previstas</div>
-                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>{provasDisponiveis.length + provasEmReserva.length}</div>
+                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', textAlign: 'center', color: '#0f172a' }}>{provasDisponiveis.length + provasEmReserva.length}</div>
                 </div>
               </div>
               <div className="stat" style={{ padding: '20px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div className="stat-ico" style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', fontSize: '24px' }}>✅</div>
                 <div>
                   <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Vagas com Disponibilidade</div>
-                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>{totalVagasLivres}</div>
+                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', textAlign: 'center', color: '#0f172a' }}>{totalVagasLivres}</div>
                 </div>
               </div>
               <div className="stat" style={{ padding: '20px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div className="stat-ico" style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px', fontSize: '24px' }}>⏳</div>
                 <div>
-                  <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Em Lista de Reserva</div>
-                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>{provasEmReserva.length}</div>
+                  <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Lista de Reserva</div>
+                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', textAlign: 'center',color: '#0f172a' }}>{provasEmReserva.length}</div>
                 </div>
               </div>
             </div>
