@@ -327,6 +327,8 @@ export const DashboardCoord = () => {
     if (!window.confirm(`Remover ${nomeDoCandidato}?`)) return;
     try {
       await api.delete(`/alocacoes/${idDaAlocacao}`);
+      await carregarDetalhesDaProva(idEvento); 
+      await carregarEventos();
       setAlocacoesEvento(prev => prev.filter(i => (i.idAlocacao || i.IdAlocacao || i.id) !== idDaAlocacao));
       alert("✅ Inscrição cancelada com sucesso!");
     } catch (error) { console.error("Erro ao cancelar:", error); alert("Erro ao cancelar a inscrição."); }
