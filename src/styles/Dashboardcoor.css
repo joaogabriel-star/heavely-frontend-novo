@@ -1082,6 +1082,21 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
     min-width: 16px;
     text-align: center;
   }
+
+  .bottom-nav-item.active svg {
+  stroke: #2563eb !important;
+}
+.bottom-nav-item.active span {
+  color: #2563eb !important;
+}
+
+/* Botão do bottom-nav sem estilo padrão de button */
+.bottom-nav-item {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+}
  
 } /* fim @media 768px */
  
