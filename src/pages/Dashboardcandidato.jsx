@@ -288,7 +288,7 @@ export const DashboardCandidato = () => {
 
     try {
       if (statusPonto === 'entrada') {
-        await api.post(`/alocacoes/${idParaUsar}/checkin`);
+        await api.put(`/alocacoes/${idParaUsar}/checkin`);
 
         setRegistrosDeHoje(prev => [...prev, {
           tipo:   'entrada',
@@ -313,7 +313,7 @@ export const DashboardCandidato = () => {
     const idParaUsar = idEventoHoje || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
 
     try {
-      await api.post(`/alocacoes/${idParaUsar}/checkout`);
+      await api.put(`/alocacoes/${idParaUsar}/checkout`);
 
       setRegistrosDeHoje(prev => [...prev, {
         tipo:   'saida',
