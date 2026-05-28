@@ -567,161 +567,128 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
    MEDIA QUERY — MOBILE (≤ 768px)
 ══════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
- 
-  /* ── ROOT ────────────────────────────────────────────── */
+
+  /* ── ROOT ─────────────────────────────────── */
   .dashboard-container {
     min-height: 100vh;
     background: #f1f5f9;
-    padding-bottom: 70px; /* espaço para bottom nav */
-  }
- 
-  /* ── NAVBAR DESKTOP → ESCONDE ────────────────────────── */
-  .nav {
-    padding: 10px 14px;
-    background: #0B1A4A;
-  }
- 
-  /* Esconde texto do brand no mobile */
-  .nav-brand > span:not(.his-mark) {
-    display: none;
-  }
- 
-  /* Esconde botões Eventos/Relatórios da navbar */
-  .nav-btn {
-    display: none;
-  }
- 
-  /* Esconde separador e info de texto do avatar */
-  .nav-sep,
-  .nav-user-info {
-    display: none;
-  }
- 
-  .nav-brand {
-    gap: 8px;
-  }
- 
-  .nav-brand-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 7px;
-  }
- 
-  .his-mark {
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
- 
-  .avatar {
-    width: 34px;
-    height: 34px;
-    font-size: 13px;
-  }
- 
-  /* ── TABS BAR → ESCONDE NO MOBILE ───────────────────── */
-  .tabs-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto;              /* cancela o sticky do desktop */
-    z-index: 100;
-    background: #fff;
-    border-top: 1px solid var(--gray-200);
-    border-bottom: none;
-    padding: 6px 0 10px;
-    display: flex;
-    justify-content: space-around;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.07);
+    padding-bottom: 80px;
   }
 
-   .tab {
+  /* ── NAVBAR ──────────────────────────────── */
+  .nav {
+    padding: 10px 14px;
+  }
+
+  .nav-brand > span:not(.his-mark) { display: none; }
+  .nav-btn       { display: none; }
+  .nav-sep       { display: none; }
+  .nav-user-info { display: none; }
+  .nav-brand     { gap: 8px; }
+  .nav-brand-icon { width: 30px; height: 30px; }
+  .his-mark  { font-size: 12px; padding: 2px 6px; }
+  .avatar    { width: 34px; height: 34px; font-size: 13px; }
+
+  /* ── TABS BAR → BOTTOM NAV FIXO ─────────── */
+  .tabs-bar {
+    display: flex !important;       /* garante visibilidade */
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    top: auto;
+    z-index: 200;
+    background: #fff;
+    border-top: 1px solid #e4e7ed;
+    border-bottom: none;
+    padding: 6px 0 env(safe-area-inset-bottom, 10px);
+    justify-content: space-around;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+  }
+
+  /* Cada botão: ícone em cima, label embaixo */
+  .tab {
     flex: 1;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: column !important;
+    align-items: center !important;
     justify-content: center;
     gap: 3px;
     padding: 6px 4px;
-    border-bottom: none;        /* remove a linha do desktop */
+    border-bottom: none !important;
     border-radius: 0;
-    font-size: 10px;
-    color: var(--gray-400);
-  }
-
-  .tab:hover {
+    color: #9aa3b2;
     background: none;
-    color: var(--gray-500);
+    min-width: 0;
   }
 
-  /* ── Estado ativo ── */
+  .tab:hover { background: none; }
+
   .tab.active {
-    color: var(--blue);
-    border-bottom: none;        /* sem underline no mobile */
+    color: #2563eb;
+    border-bottom: none !important;
   }
 
   .tab.active svg,
-  .tab.active .lucide {
-    stroke: var(--blue);
+  .tab.active .lucide { stroke: #2563eb !important; }
+
+  .tab svg,
+  .tab .lucide {
+    width: 22px !important;
+    height: 22px !important;
+    stroke: #9aa3b2;
+    flex-shrink: 0;
   }
 
-  /* ── Label menor no mobile ── */
   .tab-label {
-    font-size: 10px;
+    font-size: 10px !important;
     font-weight: 600;
     line-height: 1;
+    display: block !important;
   }
 
+  /* Badge de notificação no bottom nav */
   .badge-flutuante {
-    top: -6px;
+    top: -5px;
     right: -8px;
     font-size: 9px;
     padding: 1px 4px;
     border: 1.5px solid #fff;
   }
- 
-  /* ── PAGE/PANEL ──────────────────────────────────────── */
+
+  /* ── PAGE ────────────────────────────────── */
   .page {
-    padding-bottom: 80px;
+    padding: 14px;
+    padding-bottom: 90px;
+    max-width: 100%;
   }
- 
-  .panel {
-    width: 100%;
-  }
- 
-  /* ── PAGE HEADER ─────────────────────────────────────── */
+
+  .panel { width: 100%; }
+
+  /* ── PAGE HEADER ──────────────────────────── */
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 16px;
   }
- 
-  .page-title {
-    font-size: 20px;
-  }
- 
-  .page-sub {
-    font-size: 13px;
-    margin-bottom: 0;
-  }
- 
+
+  .page-title { font-size: 20px; }
+  .page-sub   { font-size: 13px; margin-bottom: 0; }
+
   .btn-primary {
     width: 100%;
     text-align: center;
     padding: 13px 16px;
     font-size: 14px;
     border-radius: 10px;
+    display: block;
   }
- 
-  /* ── STATS GRID: 2 colunas no mobile ─────────────────── */
+
+  /* ── STATS: 2 colunas ─────────────────────── */
   .stats {
-    display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-bottom: 16px;
   }
- 
+
   .stat {
     padding: 14px;
     border-radius: 12px;
@@ -729,292 +696,120 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
     gap: 8px;
     align-items: flex-start;
   }
- 
-  .stat-ico {
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
-    border-radius: 8px;
-  }
- 
-  .stat-lbl {
-    font-size: 11px;
-  }
- 
-  .stat-val {
-    font-size: 26px;
-  }
- 
-  /* ── CARD ────────────────────────────────────────────── */
-  .card {
-    border-radius: 12px;
-    margin-bottom: 12px;
-  }
- 
-  .card-head {
-    padding: 14px 16px;
-  }
- 
-  .card-title {
-    font-size: 15px;
-  }
- 
-  /* ── SUB-TABS ────────────────────────────────────────── */
+
+  .stat-ico { width: 36px; height: 36px; font-size: 18px; border-radius: 8px; }
+  .stat-lbl { font-size: 11px; }
+  .stat-val  { font-size: 26px; }
+
+  /* ── CARD ─────────────────────────────────── */
+  .card         { border-radius: 12px; margin-bottom: 12px; }
+  .card-head    { padding: 14px 16px; }
+  .card-title   { font-size: 15px; }
+
+  /* ── SUB-TABS ─────────────────────────────── */
   .sub-tabs {
     padding: 0 14px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    display: flex;
-    gap: 0;
   }
   .sub-tabs::-webkit-scrollbar { display: none; }
- 
-  .sub-tab {
-    padding: 10px 14px;
-    font-size: 13px;
-    white-space: nowrap;
-  }
- 
-  /* ── TABELA → CARDS no mobile ────────────────────────── */
-  .tbl-wrap {
-    padding: 12px !important;
-  }
- 
-  /* Esconde tabela desktop */
-  .tbl-wrap table {
+  .sub-tab { padding: 10px 14px; font-size: 13px; white-space: nowrap; }
+
+  /* ── TABELA DE EVENTOS: esconde só a tabela de eventos ── */
+  .tbl-wrap { padding: 12px !important; }
+
+  /* ✅ FIX: esconde APENAS a tabela de eventos, não a de membros */
+  .tbl-wrap table:not(.members-table) {
     display: none;
   }
- 
-  /* Cards de eventos para mobile */
-  .tbl-wrap::after {
-    content: '';
-  }
- 
-  /* ── EVENTO CARD (classe nova, adiciona no JSX) ───────── */
-  .evento-mobile-card {
-    background: #fff;
-    border-radius: 10px;
-    border: 1px solid #e5e7eb;
-    padding: 14px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  }
- 
-  .evento-mobile-card:last-child {
-    margin-bottom: 0;
-  }
- 
-  .evento-mobile-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-  }
- 
-  .evento-mobile-nome {
-    font-size: 14px;
-    font-weight: 700;
-    color: #0f172a;
-    flex: 1;
-    margin-right: 8px;
-  }
- 
-  .evento-mobile-preco {
-    font-size: 12px;
-    color: #64748b;
-    font-weight: 500;
-    margin-top: 2px;
-  }
- 
-  .evento-mobile-data {
-    font-size: 12px;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
- 
-  .evento-mobile-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
- 
-  .evento-mobile-progress {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-  }
- 
-  .evento-mobile-bar {
-    flex: 1;
-    height: 5px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    overflow: hidden;
-  }
- 
-  .evento-mobile-bar-fill {
-    height: 100%;
-    background: #3b82f6;
-    border-radius: 4px;
-  }
- 
-  .evento-mobile-vagas {
-    font-size: 12px;
-    color: #64748b;
-    white-space: nowrap;
-  }
- 
-  .evento-mobile-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
- 
-  /* Pills de status no mobile */
-  .status-pill {
-    font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
- 
-  .status-agendado { background: #e0e7ff; color: #4338ca; }
-  .status-concluido { background: #d1fae5; color: #065f46; }
-  .status-cancelado { background: #fee2e2; color: #991b1b; }
- 
-  .btn-detalhes-mobile {
-    background: none;
-    border: none;
-    color: #2563eb;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    padding: 0;
-  }
- 
-  /* ── APROVAÇÃO MOBILE ────────────────────────────────── */
-  .aprov-item {
-    flex-direction: column;
-    padding: 16px;
-    gap: 14px;
-  }
- 
-  .aprov-av {
-    width: 40px;
-    height: 40px;
-    font-size: 14px;
-    flex-shrink: 0;
-  }
- 
-  .aprov-header {
-    flex-direction: column;
-    gap: 12px;
-  }
- 
-  .aprov-actions {
-    flex-direction: row;
-    gap: 8px;
+
+  /* ── MEMBROS: mantém visível em coluna ──── */
+  .members-table {
+    display: table !important;   /* garante que aparece */
     width: 100%;
   }
- 
-  .btn-success-small,
-  .btn-danger-small {
-    flex: 1;
-    text-align: center;
-    padding: 9px 12px;
-    font-size: 13px;
-    border-radius: 8px;
-  }
- 
-  .aprov-fields {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
- 
-  .aprov-field-label {
-    font-size: 10px;
-  }
- 
-  .aprov-field-val {
-    font-size: 13px;
-  }
- 
-  /* ── MEMBROS TABLE → CARDS ───────────────────────────── */
-  .members-table thead {
-    display: none;
-  }
- 
-  .members-table tr {
+
+  .members-table thead { display: none; }
+
+  .members-table tbody tr {
     display: flex;
     flex-direction: column;
     padding: 14px 16px;
     border-bottom: 1px solid #f1f5f9;
     gap: 10px;
   }
- 
-  .members-table td {
-    padding: 0;
-    font-size: 14px;
+
+  .members-table tbody td {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 0;
+    font-size: 14px;
+    border-bottom: none;
   }
- 
-  /* Esconde CPF no mobile para economizar espaço */
-  .members-table td:nth-child(3) {
-    display: none;
-  }
- 
+
+  /* Esconde CPF no mobile */
+  .members-table tbody td:nth-child(3) { display: none; }
+
+  .role-select { font-size: 13px; padding: 6px 10px; width: auto; flex: 1; max-width: 160px; }
+
   .members-footer {
     padding: 14px 16px;
     flex-direction: column;
     gap: 8px;
   }
- 
+
   .members-footer .btn-outline,
   .members-footer .btn-primary {
     width: 100%;
     text-align: center;
   }
- 
-  .role-select {
+
+  /* ── APROVAÇÃO ───────────────────────────── */
+  .aprov-item { flex-direction: column; padding: 16px; gap: 14px; }
+  .aprov-av   { width: 40px; height: 40px; font-size: 14px; }
+
+  .aprov-header {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .aprov-actions {
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .btn-success-small,
+  .btn-danger-small {
+    flex: 1;
+    width: auto;
+    text-align: center;
+    padding: 9px 12px;
     font-size: 13px;
-    padding: 6px 10px;
-    border-radius: 6px;
+    border-radius: 8px;
+    justify-content: center;
   }
- 
-  /* ── PERFIL MOBILE ───────────────────────────────────── */
-  .field-grp {
-    margin-bottom: 14px;
-  }
- 
-  .field-grp label {
-    font-size: 11px;
-  }
- 
-  .field-grp input {
-    font-size: 14px;
-    padding: 11px 12px;
-  }
- 
-  /* Grid de 2 colunas → 1 coluna no mobile */
+
+  .aprov-fields { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .aprov-field-label { font-size: 10px; }
+  .aprov-field-val   { font-size: 13px; }
+
+  /* ── PERFIL ──────────────────────────────── */
+  .field-grp { margin-bottom: 14px; }
+  .field-grp label  { font-size: 11px; }
+  .field-grp input  { font-size: 14px; padding: 11px 12px; }
+
+  /* Grid 2 col → 1 col */
   div[style*="grid-template-columns: 1fr 1fr"] {
     grid-template-columns: 1fr !important;
   }
- 
-  /* ── MODAL MOBILE → BOTTOM SHEET ─────────────────────── */
-  .overlay {
-    align-items: flex-end !important;
-  }
- 
+
+  /* ── MODAL → BOTTOM SHEET ────────────────── */
+  .overlay { align-items: flex-end !important; }
+
   .modal {
     width: 100% !important;
     max-width: 100% !important;
@@ -1023,155 +818,43 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
     max-height: 90vh;
     overflow-y: auto;
   }
- 
-  /* Indicador de arrasto */
+
   .modal::before {
     content: '';
     display: block;
-    width: 36px;
-    height: 4px;
+    width: 36px; height: 4px;
     background: #e2e8f0;
     border-radius: 2px;
     margin: 0 auto 16px;
   }
- 
-  .modal-title {
-    font-size: 18px;
-  }
- 
-  .modal-grid {
-    grid-template-columns: 1fr !important;
-    gap: 12px;
-  }
- 
+
+  .modal-title { font-size: 18px; }
+
+  .modal-grid { grid-template-columns: 1fr !important; gap: 12px; }
   .modal-grid .field-grp.full,
-  .modal-grid .field-grp {
-    grid-column: 1 / -1;
-  }
- 
-  .modal-footer {
-    flex-direction: column;
-    gap: 10px;
-  }
- 
+  .modal-grid .field-grp { grid-column: 1 / -1; }
+
+  .modal-footer { flex-direction: column; gap: 10px; }
   .modal-footer .btn-outline,
   .modal-footer .btn-primary {
-    width: 100%;
-    padding: 13px;
-    font-size: 14px;
-    text-align: center;
+    width: 100%; padding: 13px;
+    font-size: 14px; text-align: center;
   }
- 
-  /* ── DETALHES DO EVENTO MOBILE ───────────────────────── */
-  .detalhes-evento-view > div:nth-child(2) {
-    flex-direction: column;
-    gap: 14px;
-  }
- 
+
+  /* ── DETALHES DO EVENTO ──────────────────── */
+  .detalhes-evento-view > div:nth-child(2) { flex-direction: column; gap: 14px; }
   .detalhes-evento-view > div:nth-child(2) > div:last-child {
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
+    flex-direction: column; gap: 10px; width: 100%;
   }
- 
-  .detalhes-evento-view button {
-    width: 100%;
-  }
- 
-  /* Tabela de alocações → cards */
-  .detalhes-evento-view table {
-    display: none;
-  }
- 
-  /* ── BOTTOM NAVIGATION ───────────────────────────────── */
-  .bottom-nav {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-top: 1px solid #e5e7eb;
-    padding: 8px 0 12px;
-    z-index: 100;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
-  }
- 
-  .bottom-nav-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    cursor: pointer;
-    padding: 4px 0;
-    position: relative;
-  }
- 
-  .bottom-nav-item svg {
-    width: 22px;
-    height: 22px;
-    stroke: #94a3b8;
-    transition: stroke 0.15s;
-  }
- 
-  .bottom-nav-item span {
-    font-size: 10px;
-    font-weight: 600;
-    color: #94a3b8;
-    transition: color 0.15s;
-  }
- 
-  .bottom-nav-item.active svg { stroke: #2563eb; }
-  .bottom-nav-item.active span { color: #2563eb; }
- 
-  .bottom-nav-badge {
-    position: absolute;
-    top: 0;
-    right: calc(50% - 18px);
-    background: #ef4444;
-    color: #fff;
-    font-size: 9px;
-    font-weight: 700;
-    border-radius: 10px;
-    padding: 1px 5px;
-    min-width: 16px;
-    text-align: center;
-  }
+  .detalhes-evento-view button { width: 100%; }
+  .detalhes-evento-view table { display: none; }
 
-  .bottom-nav-item.active svg {
-  stroke: #2563eb !important;
-}
-.bottom-nav-item.active span {
-  color: #2563eb !important;
-}
-
-/* Botão do bottom-nav sem estilo padrão de button */
-.bottom-nav-item {
-  background: none;
-  border: none;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-}
- 
 } /* fim @media 768px */
- 
-/* ── TABLET (769px – 1024px) ─────────────────────────── */
+
+/* ── TABLET ───────────────────────────────── */
 @media (min-width: 769px) and (max-width: 1024px) {
- 
-  .stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
- 
-  .page {
-    padding: 20px;
-  }
- 
-  .modal {
-    max-width: 560px;
-  }
- 
-  .aprov-fields {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .page  { padding: 20px; }
+  .modal { max-width: 560px; }
+  .aprov-fields { grid-template-columns: repeat(2, 1fr); }
 }
