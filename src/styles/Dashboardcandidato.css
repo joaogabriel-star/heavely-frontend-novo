@@ -444,8 +444,17 @@
   .sub-tab { padding: 10px 14px; font-size: 13px; white-space: nowrap; }
  
   /* ── TABELA DESKTOP → ESCONDE ────────────────────────── */
-  .tbl-wrap { padding: 12px !important; }
-  .tbl-wrap table { display: none; }
+  .tbl-wrap { 
+    padding: 12px !important; 
+    overflow-x: auto !important; /* Cria a barra de rolagem lateral no celular */
+    -webkit-overflow-scrolling: touch; /* Deixa o arrastar do dedo bem suave */
+  }
+  
+  .tbl-wrap table { 
+    display: table !important; /* Cancela a invisibilidade */
+    width: 100% !important; 
+    min-width: 550px !important; /* Impede que o texto fique espremido */
+  }
  
   /* ════════════════════════════════════════════════════════
      PROVAS DISPONÍVEIS — Cards mobile
