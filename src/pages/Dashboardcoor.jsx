@@ -5,7 +5,6 @@ import { LayoutDashboard, UserCheck, Users, FileText, User } from 'lucide-react'
 
 export const DashboardCoord = () => {
   
-  // ── ESTADOS ────────────────────────────────────────────────────
   const [activeTab, setActiveTab]         = useState('dashboard');
   const [activeSubTab, setActiveSubTab]   = useState('todos');
   const [isModalOpen, setIsModalOpen]     = useState(false);
@@ -18,11 +17,9 @@ export const DashboardCoord = () => {
   const [editMode, setEditMode]                       = useState(false);
   const [idEventoEditando, setIdEventoEditando]       = useState(null);
 
-  // ── NOVOS ESTADOS: DETALHES CONCLUÍDO ─────────────────────────
   const [cancelamentosEvento,   setCancelamentosEvento]   = useState([]);
   const [justificativasAbertas, setJustificativasAbertas] = useState(new Set());
 
-  // ── NOVOS ESTADOS: RELATÓRIOS ──────────────────────────────────
   const [activeSubTabRelatorio, setActiveSubTabRelatorio] = useState('qrcode');
   const [qrInfo,        setQrInfo]        = useState(null);
   const [qrSegundos,    setQrSegundos]    = useState(0);
@@ -77,16 +74,23 @@ export const DashboardCoord = () => {
         return {
           id:               e.idEvento,
           titulo:           e.nomeProva || e.tituloProva || 'Sem título',
-          // ← serie adicionado para aparecer no detalhe concluído
           serie:            e.serie || '',
           valor:            e.valorHora ? e.valorHora.toString() : '37',
           vagasTotais:      vagasLedor + vagasFiscal,
           vagasPreenchidas: e.vagasPreenchidas ?? 0,
           reservas:         0,
-          data:             dataProva.toLocaleString('pt-BR', {
-                              day: '2-digit', month: '2-digit',
-                              year: 'numeric', hour: '2-digit', minute: '2-digit'
-                            }),
+
+          // ── MUDANÇA 1: guarda os campos brutos para o cálculo inteligente ──
+          vagasLedor,
+          vagasFiscal,
+          vagasLedorDisponiveis:  e.vagasLedorDisponiveis,
+          vagasFiscalDisponiveis: e.vagasFiscalDisponiveis,
+          // ────────────────────────────────────────────────────────────────────
+
+          data: dataProva.toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit',
+            year: 'numeric', hour: '2-digit', minute: '2-digit'
+          }),
           status: e.statusEvento === 'CANCELADO' ? 'Cancelado'
                 : passou                         ? 'Concluído'
                 :                                  'Agendado',
@@ -184,15 +188,33 @@ export const DashboardCoord = () => {
         VagasFiscal: eventoFormData.tipoFuncao === 'Fiscal' ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.floor(vagas / 2) : 0),
       };
       const salvo = await eventoService.criarEvento(dto);
+
+      const vl = salvo.vagasLedor  || 0;
+      const vf = salvo.vagasFiscal || 0;
+
       setEventos(prev => [...prev, {
-        id: salvo.idEvento || Date.now(), titulo: salvo.nomeProva || eventoFormData.nome,
-        serie: eventoFormData.serie || '',
-        valor: eventoFormData.valor || '37',
-        vagasTotais: (salvo.vagasLedor || 0) + (salvo.vagasFiscal || 0),
-        vagasPreenchidas: salvo.vagasPreenchidas || 0, reservas: 0,
-        data: new Date(salvo.dataProva).toLocaleString('pt-BR', { day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit' }),
+        id:               salvo.idEvento || Date.now(),
+        titulo:           salvo.nomeProva || eventoFormData.nome,
+        serie:            eventoFormData.serie || '',
+        valor:            eventoFormData.valor || '37',
+        vagasTotais:      vl + vf,
+        vagasPreenchidas: salvo.vagasPreenchidas || 0,
+        reservas:         0,
+
+        // ── MUDANÇA 2: mesmos campos brutos no evento recém-criado ──
+        vagasLedor:            vl,
+        vagasFiscal:           vf,
+        vagasLedorDisponiveis:  salvo.vagasLedorDisponiveis,
+        vagasFiscalDisponiveis: salvo.vagasFiscalDisponiveis,
+        // ────────────────────────────────────────────────────────────
+
+        data: new Date(salvo.dataProva).toLocaleString('pt-BR', {
+          day:'2-digit', month:'2-digit', year:'numeric',
+          hour:'2-digit', minute:'2-digit'
+        }),
         status: 'Agendado',
       }]);
+
       setIsModalOpen(false);
       setEventoFormData({ nome:'',serie:'',data:'',horario:'',duracao:'',vagas:'',valor:'',tipoFuncao:'Ledor',observacoes:'' });
       alert('Evento criado com sucesso!');
@@ -203,29 +225,23 @@ export const DashboardCoord = () => {
   };
 
   // ── EVENTOS: DETALHES ──────────────────────────────────────────
-  // Agora separa confirmados x cancelados e traz horários de ponto
   const abrirDetalhesEvento = async (ev) => {
     setEventoEmDetalhe(ev);
     setJustificativasAbertas(new Set());
     setCancelamentosEvento([]);
-
     try {
       const resposta = await api.get(`/alocacoes/${ev.id}/lista`);
-
       const todas = resposta.data.map(a => ({
         id:               a.idAlocacao  || a.id,
         nome:             a.nomeUsuario || 'Nome não informado',
         email:            a.email       || 'Sem e-mail',
         funcao:           a.papelEvento || 'Ledor',
         sala:             a.salaDesignada || '',
-        // status agora inclui Cancelado
         status:           a.statusParticipacao === 'Confirmado' ? 'Confirmado'
                         : a.statusParticipacao === 'Cancelado'  ? 'Cancelado'
                         :                                         'Na Reserva',
-        // campos de ponto (bater ponto)
         horarioEntrada:   a.horarioEntrada || '',
         horarioSaida:     a.horarioSaida   || '',
-        // campos de cancelamento
         motivo:           a.motivoCancelamento           || '',
         justificativa:    a.justificativaCancelamento    || '',
         dataCancelamento: a.dataCancelamento
@@ -234,13 +250,10 @@ export const DashboardCoord = () => {
               return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
             })()
           : '',
-        antecedencia:     a.antecedencia || '',
+        antecedencia: a.antecedencia || '',
       }));
-
-      // divide: ativos no painel de salas / cancelados no painel de cancelamentos
       setAlocacoesEvento(todas.filter(a => a.status !== 'Cancelado'));
       setCancelamentosEvento(todas.filter(a => a.status === 'Cancelado'));
-
     } catch (error) {
       console.error("Erro ao buscar inscritos:", error.response?.data || error.message);
       alert("Não foi possível carregar os inscritos do banco.");
@@ -248,8 +261,6 @@ export const DashboardCoord = () => {
     }
   };
 
-  // ── DETALHES CONCLUÍDO: helpers ───────────────────────────────
-  // Cores de chip por motivo de cancelamento
   const getMotivoEstilo = (motivo) => {
     const map = {
       'Problema de saúde':      { bg: '#fce7f3', color: '#9d174d', emoji: '🏥' },
@@ -260,7 +271,6 @@ export const DashboardCoord = () => {
     return map[motivo] || { bg: '#f1f3f6', color: '#64728a', emoji: '•' };
   };
 
-  // Toggle do texto de justificativa
   const toggleJustificativa = (id) => {
     setJustificativasAbertas(prev => {
       const next = new Set(prev);
@@ -269,7 +279,6 @@ export const DashboardCoord = () => {
     });
   };
 
-  // ── OUTROS HANDLERS ───────────────────────────────────────────
   const abrirModalEdicao = () => {
     if (!eventoEmDetalhe) return;
     try {
@@ -334,7 +343,7 @@ export const DashboardCoord = () => {
 
   // ── QR CODE ───────────────────────────────────────────────────
   const gerarToken    = () => Math.random().toString(36).substring(2, 10).toUpperCase();
-  const formatarTimer = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+  const formatarTimer = (s) => `${Math.floor(s/60).toString().padStart(2,'00')}:${(s%60).toString().padStart(2,'00')}`;
 
   const abrirQrEvento = (ev) => {
     if (qrTimerRef.current) clearInterval(qrTimerRef.current);
@@ -387,53 +396,37 @@ export const DashboardCoord = () => {
 
       {/* TABS */}
       <div className="tabs-bar">
-  <button className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveTab('dashboard'); setEventoEmDetalhe(null); }}>
-    <div className="icon-container">
-      <LayoutDashboard size={24} strokeWidth={1.5} />
-    </div>
-    <span className="tab-label">Dashboard</span>
-  </button>
-
-  <button className={`tab ${activeTab === 'aprovacao' ? 'active' : ''}`} onClick={() => setActiveTab('aprovacao')}>
-    <div className="icon-container">
-      <UserCheck size={24} strokeWidth={1.5} />
-      {/* A bolinha só aparece se houver pendências */}
-      {candidatosPendentes.length > 0 && (
-        <span className="badge-flutuante">{candidatosPendentes.length}</span>
-      )}
-    </div>
-    <span className="tab-label">Aprovar</span>
-  </button>
-
-  <button className={`tab ${activeTab === 'membros' ? 'active' : ''}`} onClick={() => setActiveTab('membros')}>
-    <div className="icon-container">
-      <Users size={24} strokeWidth={1.5} />
-    </div>
-    <span className="tab-label">Membros</span>
-  </button>
-
-  <button className={`tab ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => setActiveTab('relatorios')}>
-    <div className="icon-container">
-      <FileText size={24} strokeWidth={1.5} />
-    </div>
-    <span className="tab-label">Relatórios</span>
-  </button>
-
-  <button className={`tab ${activeTab === 'perfil' ? 'active' : ''}`} onClick={() => setActiveTab('perfil')}>
-    <div className="icon-container">
-      <User size={24} strokeWidth={1.5} />
-    </div>
-    <span className="tab-label">Perfil</span>
-  </button>
-</div>
+        <button className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveTab('dashboard'); setEventoEmDetalhe(null); }}>
+          <div className="icon-container"><LayoutDashboard size={24} strokeWidth={1.5} /></div>
+          <span className="tab-label">Dashboard</span>
+        </button>
+        <button className={`tab ${activeTab === 'aprovacao' ? 'active' : ''}`} onClick={() => setActiveTab('aprovacao')}>
+          <div className="icon-container">
+            <UserCheck size={24} strokeWidth={1.5} />
+            {candidatosPendentes.length > 0 && <span className="badge-flutuante">{candidatosPendentes.length}</span>}
+          </div>
+          <span className="tab-label">Aprovar</span>
+        </button>
+        <button className={`tab ${activeTab === 'membros' ? 'active' : ''}`} onClick={() => setActiveTab('membros')}>
+          <div className="icon-container"><Users size={24} strokeWidth={1.5} /></div>
+          <span className="tab-label">Membros</span>
+        </button>
+        <button className={`tab ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => setActiveTab('relatorios')}>
+          <div className="icon-container"><FileText size={24} strokeWidth={1.5} /></div>
+          <span className="tab-label">Relatórios</span>
+        </button>
+        <button className={`tab ${activeTab === 'perfil' ? 'active' : ''}`} onClick={() => setActiveTab('perfil')}>
+          <div className="icon-container"><User size={24} strokeWidth={1.5} /></div>
+          <span className="tab-label">Perfil</span>
+        </button>
+      </div>
 
       <main className="page">
 
-        {/* ══ DASHBOARD ══════════════════════════════════════════ */}
+        {/* ══ DASHBOARD ══ */}
         {activeTab === 'dashboard' && (
           <div className="panel active">
             {!eventoEmDetalhe ? (
-              /* ── Lista de eventos ─────────────────────────── */
               <>
                 <div className="page-header">
                   <div><h1 className="page-title">Dashboard da Coordenação</h1><p className="page-sub">Gerencie dias de prova, ledores e fiscais.</p></div>
@@ -461,32 +454,61 @@ export const DashboardCoord = () => {
                       </div>
                     ) : (
                       <table>
-                        <thead><tr><th>EVENTO</th><th>DATA</th><th>OCUPAÇÃO</th><th>STATUS</th><th>AÇÃO</th></tr></thead>
+                        <thead>
+                          <tr><th>EVENTO</th><th>DATA</th><th>OCUPAÇÃO</th><th>STATUS</th><th>AÇÃO</th></tr>
+                        </thead>
                         <tbody>
                           {eventos.filter(ev => {
                             if (activeSubTab==='agendados')  return ev.status==='Agendado';
                             if (activeSubTab==='concluidos') return ev.status==='Concluído';
                             return true;
-                          }).map(ev => (
-                            <tr key={ev.id}>
-                              <td><strong style={{ fontSize:'14px', color:'#1a1a1a' }}>{ev.titulo}</strong><div style={{ fontSize:'12px', color:'#6b7280' }}>R$ {ev.valor}/hora</div></td>
-                              <td style={{ fontSize:'14px', color:'#4b5563' }}>{ev.data}</td>
-                              <td>
-                                <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                                  <div style={{ width:'120px', height:'6px', backgroundColor:'#e5e7eb', borderRadius:'4px', overflow:'hidden' }}>
-                                    <div style={{ width:`${ev.vagasTotais>0?(ev.vagasPreenchidas/ev.vagasTotais)*100:0}%`, height:'100%', backgroundColor: ev.vagasPreenchidas>=ev.vagasTotais&&ev.vagasTotais>0?'#10b981':'#3b82f6' }} />
+                          // ── MUDANÇA 3: map virou bloco para calcular ocupação antes do return ──
+                          }).map(ev => {
+                            // Cálculo inteligente de ocupação — ignora reservas e trata null do backend
+                            const vl = ev.vagasLedor  ?? 0;
+                            const vf = ev.vagasFiscal ?? 0;
+                            const total      = vl + vf;
+                            const ledorDisp  = Math.max(0, ev.vagasLedorDisponiveis  !== undefined && ev.vagasLedorDisponiveis  !== null ? ev.vagasLedorDisponiveis  : vl);
+                            const fiscalDisp = Math.max(0, ev.vagasFiscalDisponiveis !== undefined && ev.vagasFiscalDisponiveis !== null ? ev.vagasFiscalDisponiveis : vf);
+                            const ocupacao   = (vl - ledorDisp) + (vf - fiscalDisp);
+                            const pct        = total > 0 ? (ocupacao / total) * 100 : 0;
+                            // ────────────────────────────────────────────────────────────────────
+                            return (
+                              <tr key={ev.id}>
+                                <td>
+                                  <strong style={{ fontSize:'14px', color:'#1a1a1a' }}>{ev.titulo}</strong>
+                                  <div style={{ fontSize:'12px', color:'#6b7280' }}>R$ {ev.valor}/hora</div>
+                                </td>
+                                <td style={{ fontSize:'14px', color:'#4b5563' }}>{ev.data}</td>
+                                <td>
+                                  {/* Coluna de ocupação agora usa o cálculo inteligente */}
+                                  <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                                    <div style={{ width:'120px', height:'6px', backgroundColor:'#e5e7eb', borderRadius:'4px', overflow:'hidden' }}>
+                                      <div style={{
+                                        width: `${pct}%`,
+                                        height: '100%',
+                                        backgroundColor: pct >= 100 ? '#10b981' : '#3b82f6'
+                                      }} />
+                                    </div>
+                                    <span style={{ fontSize:'13px' }}>{ocupacao}/{total}</span>
                                   </div>
-                                  <span style={{ fontSize:'13px' }}>{ev.vagasPreenchidas}/{ev.vagasTotais}</span>
-                                </div>
-                              </td>
-                              <td>
-                                <span style={{ backgroundColor: ev.status==='Concluído'?'#d1fae5':ev.status==='Cancelado'?'#fee2e2':'#e0e7ff', color: ev.status==='Concluído'?'#065f46':ev.status==='Cancelado'?'#991b1b':'#4338ca', padding:'4px 12px', borderRadius:'9999px', fontSize:'12px', fontWeight:'500' }}>
-                                  {ev.status}
-                                </span>
-                              </td>
-                              <td><button onClick={() => abrirDetalhesEvento(ev)} style={{ background:'none', border:'none', color:'#2563eb', fontWeight:'600', cursor:'pointer', fontSize:'14px' }}>Detalhes →</button></td>
-                            </tr>
-                          ))}
+                                  {ev.reservas > 0 && (
+                                    <span style={{ fontSize:'11px', color:'#d97706' }}>+{ev.reservas} na reserva</span>
+                                  )}
+                                </td>
+                                <td>
+                                  <span style={{ backgroundColor: ev.status==='Concluído'?'#d1fae5':ev.status==='Cancelado'?'#fee2e2':'#e0e7ff', color: ev.status==='Concluído'?'#065f46':ev.status==='Cancelado'?'#991b1b':'#4338ca', padding:'4px 12px', borderRadius:'9999px', fontSize:'12px', fontWeight:'500' }}>
+                                    {ev.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  <button onClick={() => abrirDetalhesEvento(ev)} style={{ background:'none', border:'none', color:'#2563eb', fontWeight:'600', cursor:'pointer', fontSize:'14px' }}>
+                                    Detalhes →
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     )}
@@ -495,18 +517,12 @@ export const DashboardCoord = () => {
               </>
 
             ) : eventoEmDetalhe.status === 'Concluído' ? (
-              /* ══════════════════════════════════════════════════
-                 DETALHES – PROVA CONCLUÍDA  (novo)
-              ══════════════════════════════════════════════════ */
               <div>
-                {/* Breadcrumb */}
                 <div style={{ marginBottom:'20px', fontSize:'14px', fontWeight:'600', display:'flex', alignItems:'center', gap:'8px' }}>
                   <button onClick={() => setEventoEmDetalhe(null)} style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', padding:0 }}>← Voltar ao Dashboard</button>
                   <span style={{ color:'#cbd5e1' }}>/</span>
                   <span style={{ color:'#2563eb' }}>{eventoEmDetalhe.titulo}</span>
                 </div>
-
-                {/* Header */}
                 <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', padding:'22px 24px', display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'20px' }}>
                   <div>
                     <h1 style={{ fontSize:'22px', fontWeight:'800', color:'#0f172a', margin:'0 0 10px 0' }}>{eventoEmDetalhe.titulo}</h1>
@@ -517,15 +533,11 @@ export const DashboardCoord = () => {
                       <span style={{ background:'#d1fae5', color:'#065f46', padding:'3px 10px', borderRadius:'9999px', fontWeight:'600', fontSize:'12px' }}>Concluído</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => alert('Exportando relatório...')}
-                    style={{ padding:'9px 18px', border:'1px solid #d1d5db', background:'#fff', borderRadius:'8px', color:'#374151', fontWeight:'600', cursor:'pointer', fontSize:'13.5px', display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
+                  <button onClick={() => alert('Exportando relatório...')} style={{ padding:'9px 18px', border:'1px solid #d1d5db', background:'#fff', borderRadius:'8px', color:'#374151', fontWeight:'600', cursor:'pointer', fontSize:'13.5px', display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Exportar Relatório
                   </button>
                 </div>
-
-                {/* ── Equipe que Aplicou ───────────────────── */}
                 <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', marginBottom:'20px', overflow:'hidden' }}>
                   <div style={{ padding:'16px 22px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <div>
@@ -541,41 +553,25 @@ export const DashboardCoord = () => {
                       </span>
                     )}
                   </div>
-
-                  {/* Cabeçalho da tabela */}
                   <div style={{ background:'#f8f9fb', padding:'10px 22px', display:'grid', gridTemplateColumns:'1fr 120px 180px 100px 100px', gap:'16px', borderBottom:'1px solid #e5e7eb' }}>
                     {['MEMBRO','FUNÇÃO','SALA','ENTRADA','SAÍDA'].map(h => (
                       <span key={h} style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.06em' }}>{h}</span>
                     ))}
                   </div>
-
                   {alocacoesEvento.filter(a => a.status === 'Confirmado').length === 0 ? (
-                    <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:'14px' }}>
-                      Nenhum membro confirmou presença com ponto registrado.
-                    </div>
+                    <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:'14px' }}>Nenhum membro confirmou presença com ponto registrado.</div>
                   ) : (
                     alocacoesEvento.filter(a => a.status === 'Confirmado').map((m, i, arr) => (
                       <div key={m.id} style={{ display:'grid', gridTemplateColumns:'1fr 120px 180px 100px 100px', gap:'16px', padding:'14px 22px', alignItems:'center', borderBottom: i < arr.length-1 ? '1px solid #f1f5f9' : 'none' }}>
-                        <div>
-                          <div style={{ fontWeight:'600', color:'#0f172a', fontSize:'13.5px' }}>{m.nome}</div>
-                          <div style={{ fontSize:'12px', color:'#94a3b8' }}>{m.email}</div>
-                        </div>
-                        <span style={{ background: m.funcao==='Ledor'?'#eff6ff':'#f3e8ff', color: m.funcao==='Ledor'?'#2563eb':'#9333ea', padding:'3px 10px', borderRadius:'12px', fontSize:'12px', fontWeight:'700', display:'inline-block' }}>
-                          {m.funcao}
-                        </span>
+                        <div><div style={{ fontWeight:'600', color:'#0f172a', fontSize:'13.5px' }}>{m.nome}</div><div style={{ fontSize:'12px', color:'#94a3b8' }}>{m.email}</div></div>
+                        <span style={{ background: m.funcao==='Ledor'?'#eff6ff':'#f3e8ff', color: m.funcao==='Ledor'?'#2563eb':'#9333ea', padding:'3px 10px', borderRadius:'12px', fontSize:'12px', fontWeight:'700', display:'inline-block' }}>{m.funcao}</span>
                         <span style={{ fontSize:'13px', color:'#374151' }}>{m.sala || <span style={{ color:'#94a3b8', fontStyle:'italic' }}>—</span>}</span>
-                        <span style={{ fontFamily:'monospace', fontSize:'13px', fontWeight:'600', color: m.horarioEntrada ? '#16a34a' : '#94a3b8' }}>
-                          {m.horarioEntrada || '—'}
-                        </span>
-                        <span style={{ fontFamily:'monospace', fontSize:'13px', fontWeight:'600', color: m.horarioSaida ? '#dc2626' : '#94a3b8' }}>
-                          {m.horarioSaida || '—'}
-                        </span>
+                        <span style={{ fontFamily:'monospace', fontSize:'13px', fontWeight:'600', color: m.horarioEntrada ? '#16a34a' : '#94a3b8' }}>{m.horarioEntrada || '—'}</span>
+                        <span style={{ fontFamily:'monospace', fontSize:'13px', fontWeight:'600', color: m.horarioSaida ? '#dc2626' : '#94a3b8' }}>{m.horarioSaida || '—'}</span>
                       </div>
                     ))
                   )}
                 </div>
-
-                {/* ── Cancelamentos ───────────────────────── */}
                 <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', overflow:'hidden', marginBottom:'20px' }}>
                   <div style={{ padding:'16px 22px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <div>
@@ -586,88 +582,58 @@ export const DashboardCoord = () => {
                       <div style={{ fontSize:'12.5px', color:'#64748b', marginTop:'2px' }}>Candidatos que se inscreveram e cancelaram antes da prova</div>
                     </div>
                     {cancelamentosEvento.length > 0 && (
-                      <span style={{ background:'#fde8e6', color:'#c0392b', padding:'3px 12px', borderRadius:'20px', fontSize:'12px', fontWeight:'700' }}>
-                        {cancelamentosEvento.length} cancelamentos
-                      </span>
+                      <span style={{ background:'#fde8e6', color:'#c0392b', padding:'3px 12px', borderRadius:'20px', fontSize:'12px', fontWeight:'700' }}>{cancelamentosEvento.length} cancelamentos</span>
                     )}
                   </div>
-
                   {cancelamentosEvento.length === 0 ? (
-                    <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:'14px' }}>
-                      Nenhum cancelamento registrado para esta prova.
-                    </div>
+                    <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:'14px' }}>Nenhum cancelamento registrado para esta prova.</div>
                   ) : (
                     cancelamentosEvento.map((c, i, arr) => {
-                      const estiloMotivo  = getMotivoEstilo(c.motivo);
-                      const justAberta    = justificativasAbertas.has(c.id);
+                      const estiloMotivo = getMotivoEstilo(c.motivo);
+                      const justAberta   = justificativasAbertas.has(c.id);
                       return (
                         <div key={c.id} style={{ padding:'16px 22px', borderBottom: i < arr.length-1 ? '1px solid #f1f5f9':'none' }}>
-                          {/* Linha principal */}
                           <div style={{ display:'flex', alignItems:'center', gap:'12px', flexWrap:'wrap' }}>
-                            {/* Avatar */}
                             <div style={{ width:'36px', height:'36px', borderRadius:'50%', background: getAvatarColor(c.nome), color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', fontSize:'12px', flexShrink:0 }}>
                               {c.nome ? c.nome.substring(0,2).toUpperCase() : 'US'}
                             </div>
-                            {/* Info */}
                             <div style={{ flex:1, minWidth:'140px' }}>
                               <div style={{ fontWeight:'600', fontSize:'13.5px', color:'#0f172a' }}>{c.nome}</div>
                               <div style={{ fontSize:'12px', color:'#94a3b8', marginTop:'1px' }}>
                                 {c.dataCancelamento ? `Cancelou em ${c.dataCancelamento}` : 'Data não registrada'}
-                                {c.antecedencia && <span style={{ marginLeft:'6px', color:'#94a3b8' }}>· {c.antecedencia}</span>}
+                                {c.antecedencia && <span style={{ marginLeft:'6px' }}>· {c.antecedencia}</span>}
                               </div>
                             </div>
-                            {/* Badge função */}
-                            <span style={{ background: c.funcao==='Ledor'?'#eff6ff':'#f3e8ff', color: c.funcao==='Ledor'?'#2563eb':'#9333ea', padding:'3px 10px', borderRadius:'12px', fontSize:'12px', fontWeight:'700', flexShrink:0 }}>
-                              {c.funcao}
-                            </span>
-                            {/* Chip motivo */}
+                            <span style={{ background: c.funcao==='Ledor'?'#eff6ff':'#f3e8ff', color: c.funcao==='Ledor'?'#2563eb':'#9333ea', padding:'3px 10px', borderRadius:'12px', fontSize:'12px', fontWeight:'700', flexShrink:0 }}>{c.funcao}</span>
                             {c.motivo && (
                               <span style={{ background: estiloMotivo.bg, color: estiloMotivo.color, padding:'4px 11px', borderRadius:'20px', fontSize:'12px', fontWeight:'600', display:'inline-flex', alignItems:'center', gap:'5px', flexShrink:0 }}>
-                                <span>{estiloMotivo.emoji}</span>
-                                {c.motivo}
+                                <span>{estiloMotivo.emoji}</span>{c.motivo}
                               </span>
                             )}
-                            {/* Toggle justificativa */}
                             {c.justificativa && (
-                              <button
-                                onClick={() => toggleJustificativa(c.id)}
-                                style={{ background:'none', border:'none', cursor:'pointer', fontSize:'12px', color:'#2563eb', fontWeight:'500', display:'flex', alignItems:'center', gap:'4px', flexShrink:0, fontFamily:'inherit' }}>
+                              <button onClick={() => toggleJustificativa(c.id)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:'12px', color:'#2563eb', fontWeight:'500', display:'flex', alignItems:'center', gap:'4px', flexShrink:0, fontFamily:'inherit' }}>
                                 <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{ transform: justAberta ? 'rotate(180deg)' : 'none', transition:'transform .2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                                 {justAberta ? 'ocultar' : 'ver justificativa'}
                               </button>
                             )}
                           </div>
-                          {/* Justificativa expandível */}
                           {justAberta && c.justificativa && (
-                            <div style={{ marginTop:'10px', padding:'12px 14px', background:'#f8f9fb', border:'1px solid #f1f5f9', borderRadius:'8px', fontSize:'13px', color:'#374151', lineHeight:'1.6' }}>
-                              {c.justificativa}
-                            </div>
+                            <div style={{ marginTop:'10px', padding:'12px 14px', background:'#f8f9fb', border:'1px solid #f1f5f9', borderRadius:'8px', fontSize:'13px', color:'#374151', lineHeight:'1.6' }}>{c.justificativa}</div>
                           )}
                         </div>
                       );
                     })
                   )}
-
-                  {/* Legenda */}
                   <div style={{ padding:'12px 22px', background:'#f8f9fb', borderTop:'1px solid #f1f5f9', display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center' }}>
                     <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'600', textTransform:'uppercase', letterSpacing:'.05em', marginRight:'4px' }}>Legenda:</span>
-                    {[
-                      { label:'Problema de saúde',      bg:'#fce7f3', color:'#9d174d' },
-                      { label:'Emergência familiar',    bg:'#fff7ed', color:'#c2410c' },
-                      { label:'Conflito de agenda',     bg:'#f0fdf4', color:'#15803d' },
-                      { label:'Problema de transporte', bg:'#eff6ff', color:'#1d4ed8' },
-                      { label:'Outro',                  bg:'#f1f3f6', color:'#64728a' },
-                    ].map(l => (
+                    {[{ label:'Problema de saúde', bg:'#fce7f3', color:'#9d174d' },{ label:'Emergência familiar', bg:'#fff7ed', color:'#c2410c' },{ label:'Conflito de agenda', bg:'#f0fdf4', color:'#15803d' },{ label:'Problema de transporte', bg:'#eff6ff', color:'#1d4ed8' },{ label:'Outro', bg:'#f1f3f6', color:'#64728a' }].map(l => (
                       <span key={l.label} style={{ background:l.bg, color:l.color, padding:'3px 10px', borderRadius:'20px', fontSize:'11.5px', fontWeight:'600' }}>{l.label}</span>
                     ))}
                   </div>
                 </div>
-
               </div>
-              /* ══ FIM DETALHES CONCLUÍDO ══ */
 
             ) : (
-              /* ── Detalhes prova AGENDADA (existente, sem alteração) ─────── */
               <div className="detalhes-evento-view">
                 <div style={{ marginBottom:'20px', fontSize:'14px', fontWeight:'600' }}>
                   <button onClick={() => setEventoEmDetalhe(null)} style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', padding:0 }}>&lt; Voltar ao Dashboard</button>
@@ -708,9 +674,7 @@ export const DashboardCoord = () => {
                               <div style={{ color:'#94a3b8', fontSize:'12px' }}>{candidato.email}</div>
                             </td>
                             <td style={{ padding:'16px 0' }}>
-                              <span style={{ background: candidato.funcao==='Ledor'?'#eff6ff':'#f3e8ff', color: candidato.funcao==='Ledor'?'#3b82f6':'#a855f7', padding:'4px 16px', borderRadius:'12px', fontSize:'12px', fontWeight:'700', opacity: candidato.status==='Cancelado'?0.5:1 }}>
-                                {candidato.funcao}
-                              </span>
+                              <span style={{ background: candidato.funcao==='Ledor'?'#eff6ff':'#f3e8ff', color: candidato.funcao==='Ledor'?'#3b82f6':'#a855f7', padding:'4px 16px', borderRadius:'12px', fontSize:'12px', fontWeight:'700', opacity: candidato.status==='Cancelado'?0.5:1 }}>{candidato.funcao}</span>
                             </td>
                             <td style={{ padding:'16px 0' }}>
                               {candidato.status === 'Confirmado' ? (
@@ -745,7 +709,7 @@ export const DashboardCoord = () => {
           </div>
         )}
 
-        {/* ══ APROVAÇÃO ══════════════════════════════════════════ */}
+        {/* ══ APROVAÇÃO ══ */}
         {activeTab === 'aprovacao' && (
           <div className="panel active">
             <div className="page-header"><div><h1 className="page-title">Aprovar Candidatos</h1><p className="page-sub">Libere o acesso de pessoas que se cadastraram na plataforma.</p></div></div>
@@ -785,7 +749,7 @@ export const DashboardCoord = () => {
           </div>
         )}
 
-        {/* ══ MEMBROS ════════════════════════════════════════════ */}
+        {/* ══ MEMBROS ══ */}
         {activeTab === 'membros' && (
           <div className="panel active">
             <div className="page-header"><div><h1 className="page-title">Membros e Funções</h1><p className="page-sub">Altere a função dos membros e salve ao finalizar.</p></div></div>
@@ -822,7 +786,7 @@ export const DashboardCoord = () => {
           </div>
         )}
 
-        {/* ══ PERFIL ═════════════════════════════════════════════ */}
+        {/* ══ PERFIL ══ */}
         {activeTab === 'perfil' && (
           <div className="panel active">
             <div className="page-header"><div><h1 className="page-title">Meu Perfil</h1><p className="page-sub">Atualize suas informações.</p></div></div>
@@ -846,7 +810,7 @@ export const DashboardCoord = () => {
           </div>
         )}
 
-        {/* ══ RELATÓRIOS ════════════════════════════════════════ */}
+        {/* ══ RELATÓRIOS ══ */}
         {activeTab === 'relatorios' && (
           <div className="panel active">
             <div className="page-header"><div><h1 className="page-title">Relatórios</h1><p className="page-sub">Geração de QR Codes para registro de saída e Notas Fiscais quinzenais.</p></div></div>
@@ -857,7 +821,6 @@ export const DashboardCoord = () => {
                 </button>
               ))}
             </div>
-
             {activeSubTabRelatorio === 'qrcode' && (
               <div>
                 <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'12px', padding:'16px 20px', marginBottom:'24px', display:'flex', gap:'14px', alignItems:'flex-start' }}>
@@ -895,13 +858,12 @@ export const DashboardCoord = () => {
                 </div>
               </div>
             )}
-
             {activeSubTabRelatorio === 'notafiscal' && (
               <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', padding:'48px', textAlign:'center', boxShadow:'0 1px 3px rgba(0,0,0,.07)' }}>
                 <div style={{ fontSize:'48px', marginBottom:'16px' }}>📄</div>
                 <h2 style={{ fontSize:'20px', fontWeight:'700', color:'#0f172a', marginBottom:'8px' }}>Nota Fiscal Quinzenal</h2>
                 <p style={{ fontSize:'14px', color:'#64748b', maxWidth:'480px', margin:'0 auto 24px', lineHeight:'1.7' }}>
-                  A nota fiscal será gerada com base nos registros de <strong>Provas Aplicadas</strong> de cada candidato, agrupados por série (EF / EM) a cada 15 dias.<br/><br/>
+                  A nota fiscal será gerada com base nos registros de <strong>Provas Aplicadas</strong>, agrupados por série (EF / EM) a cada 15 dias.<br/><br/>
                   <strong style={{ color:'#2563eb' }}>Em ajuste</strong> — a coordenação está finalizando o layout antes de ativar.
                 </p>
                 <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'#fef3c7', border:'1px solid #fde68a', color:'#92400e', padding:'10px 18px', borderRadius:'8px', fontSize:'13px', fontWeight:'500' }}>
