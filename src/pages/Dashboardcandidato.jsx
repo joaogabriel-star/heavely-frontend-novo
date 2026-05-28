@@ -215,8 +215,6 @@ export const DashboardCandidato = () => {
           historico.push(provaEstruturada);
         } else if (checkIn) {
           pendentes.push(provaEstruturada);
-        } else if (!eventoJaPassou) {
-          pendentes.push(provaEstruturada);
 
           // RESTAURA estado do ponto se já bateu entrada hoje
           if (checkIn && dataPura && ehHoje(dataPura)) {
@@ -227,6 +225,8 @@ export const DashboardCandidato = () => {
                 status: '✅ Entrada registrada (restaurada do banco)',
               });
             }
+          } else if (!eventoJaPassou) {
+          pendentes.push(provaEstruturada);
           }
         }
       });
@@ -268,15 +268,18 @@ export const DashboardCandidato = () => {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
   // ─── 10. ID DO EVENTO DE HOJE ────────────────────────────────
-  const provaDeHoje = minhasCandidaturas.find(c => {
-    return c.dataPura && ehHoje(c.dataPura) && c.status === 'Confirmado';
-  });
+// 1º: Procura se tem ponto aberto (bateu entrada, mas não bateu saída)
+  const provaEmAndamento = minhasCandidaturas.find(c => c.entrada !== '--:--' && c.saida === '--:--');
+  
+  // 2º: Se não tem ponto em andamento, procura prova de hoje
+  const provaDeHoje = minhasCandidaturas.find(c => c.dataPura && ehHoje(c.dataPura));
 
-  const idEventoHoje = provaDeHoje?.id || null;
+  const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
 
   // ─── 11. BATER PONTO ─────────────────────────────────────────
+  // ─── 11. BATER PONTO ─────────────────────────────────────────
   const handleRegistrarPonto = async () => {
-    if (!idEventoHoje) {
+    if (!idProvaAtiva) {
       const primeiraConfirmada = minhasCandidaturas.find(c => c.status === 'Confirmado');
       if (!primeiraConfirmada) {
         alert('Você não possui nenhuma prova confirmada para hoje.');
@@ -284,7 +287,7 @@ export const DashboardCandidato = () => {
       }
     }
 
-    const idParaUsar = idEventoHoje || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
+    const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
 
     try {
       if (statusPonto === 'entrada') {
@@ -310,7 +313,7 @@ export const DashboardCandidato = () => {
   };
 
   const confirmarScaneamentoQRCode = async () => {
-    const idParaUsar = idEventoHoje || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
+    const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
 
     try {
       await api.put(`/alocacoes/${idParaUsar}/checkout`);
