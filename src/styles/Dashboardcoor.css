@@ -621,12 +621,68 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
  
   /* ── TABS BAR → ESCONDE NO MOBILE ───────────────────── */
   .tabs-bar {
-    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;              /* cancela o sticky do desktop */
+    z-index: 100;
+    background: #fff;
+    border-top: 1px solid var(--gray-200);
+    border-bottom: none;
+    padding: 6px 0 10px;
+    display: flex;
+    justify-content: space-around;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.07);
+  }
+
+   .tab {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 4px;
+    border-bottom: none;        /* remove a linha do desktop */
+    border-radius: 0;
+    font-size: 10px;
+    color: var(--gray-400);
+  }
+
+  .tab:hover {
+    background: none;
+    color: var(--gray-500);
+  }
+
+  /* ── Estado ativo ── */
+  .tab.active {
+    color: var(--blue);
+    border-bottom: none;        /* sem underline no mobile */
+  }
+
+  .tab.active svg,
+  .tab.active .lucide {
+    stroke: var(--blue);
+  }
+
+  /* ── Label menor no mobile ── */
+  .tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .badge-flutuante {
+    top: -6px;
+    right: -8px;
+    font-size: 9px;
+    padding: 1px 4px;
+    border: 1.5px solid #fff;
   }
  
   /* ── PAGE/PANEL ──────────────────────────────────────── */
   .page {
-    padding: 14px;
+    padding-bottom: 80px;
   }
  
   .panel {
