@@ -19,9 +19,12 @@ export const DashboardCandidato = () => {
   const [relatoForm,              setRelatoForm]              = useState({ tipo: '', descricao: '' });
 
   // ─── 3. DADOS DO USUÁRIO ─────────────────────────────────────
-  const nomeLogado   = localStorage.getItem('nomeUsuario')   || 'João Santos';
-  const perfilLogado = localStorage.getItem('perfilUsuario') || 'Ledor';
-  const emailLogado  = localStorage.getItem('emailUsuario')  || 'joao@email.com';
+  // Puxa o objeto completo do usuário para garantir o perfil correto
+  const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}');
+  
+  const nomeLogado   = usuarioLocal?.nome || localStorage.getItem('nomeUsuario')   || 'João Santos';
+  const perfilLogado = usuarioLocal?.tipoUsuario || localStorage.getItem('perfilUsuario') || 'Ledor';
+  const emailLogado  = usuarioLocal?.email || localStorage.getItem('emailUsuario')  || 'joao@email.com';
 
   const iniciais = nomeLogado && nomeLogado !== 'Candidato'
     ? nomeLogado.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
@@ -78,7 +81,7 @@ export const DashboardCandidato = () => {
            data.getFullYear() === hoje.getFullYear();
   };
 
-  // ─── 7. CARREGAR EVENTOS ─────────────────────────────────────
+  // ─── 7. CARREGAR EVENTOS (COM FILTRO INTELIGENTE) ────────────
   const carregarEventos = async () => {
     try {
       const dadosEventos = await eventoService.listarEventos();
@@ -92,32 +95,44 @@ export const DashboardCandidato = () => {
         const dataDaProva = new Date(e.dataProva);
         if (dataDaProva <= agora) return;
 
+        // Vagas cadastradas pelo coordenador
+        const vagasLedor  = e.totalVagasLedor  ?? e.vagasLedor  ?? 0;
+        const vagasFiscal = e.totalVagasFiscal ?? e.vagasFiscal ?? 0;
+
+        // 🛑 FILTRO DE PERFIL: Se não tem vaga para o perfil logado, ignora a prova!
+        if (perfilLogado === 'Ledor' && vagasLedor <= 0) return;
+        if (perfilLogado === 'Fiscal' && vagasFiscal <= 0) return;
+
+        // Calcula as vagas baseado SOMENTE no perfil de quem está olhando
+        let vagasTotaisParaMim = 0;
+        let vagasDisponiveisParaMim = 0;
+
+        if (perfilLogado === 'Ledor') {
+            vagasTotaisParaMim = vagasLedor;
+            vagasDisponiveisParaMim = Math.max(0, e.vagasLedorDisponiveis !== undefined ? e.vagasLedorDisponiveis : vagasLedor);
+        } else {
+            vagasTotaisParaMim = vagasFiscal;
+            vagasDisponiveisParaMim = Math.max(0, e.vagasFiscalDisponiveis !== undefined ? e.vagasFiscalDisponiveis : vagasFiscal);
+        }
+
+        const vagasPreenchidasParaMim = vagasTotaisParaMim - vagasDisponiveisParaMim;
+        const temVaga = vagasDisponiveisParaMim > 0;
+
+        if (temVaga) vagasLivres += vagasDisponiveisParaMim;
+
         const dia  = dataDaProva.getDate();
         const mes  = dataDaProva.toLocaleDateString('pt-BR', { month: 'long' });
         const hora = dataDaProva.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-        const titulo      = e.nomeProva || e.tituloProva || 'Sem título';
-        const vagasLedor  = e.totalVagasLedor  ?? e.vagasLedor  ?? 0;
-        const vagasFiscal = e.totalVagasFiscal ?? e.vagasFiscal ?? 0;
-        const vagasTotais = vagasLedor + vagasFiscal;
-
-        const vagasLedorDisp  = e.vagasLedorDisponiveis  !== undefined ? e.vagasLedorDisponiveis  : vagasLedor;
-        const vagasFiscalDisp = e.vagasFiscalDisponiveis !== undefined ? e.vagasFiscalDisponiveis : vagasFiscal;
-        const vagasDisponiveis = vagasLedorDisp + vagasFiscalDisp;
-        const vagasPreenchidas = e.vagasPreenchidas || 0;
-
-        const temVaga = vagasTotais === 0 || vagasDisponiveis > 0;
-        if (temVaga) vagasLivres += vagasDisponiveis;
-
-        let funcaoTexto = 'Fiscal';
-        if (vagasLedor > 0 && vagasFiscal > 0) funcaoTexto = 'Ledor e Fiscal';
-        else if (vagasLedor > 0)               funcaoTexto = 'Ledor';
+        const titulo = e.nomeProva || e.tituloProva || 'Sem título';
 
         const provaFormatada = {
           id: e.idEvento, titulo,
-          detalhes: `${funcaoTexto} · HIS`,
+          detalhes: `Vaga para: ${perfilLogado} · ${e.serie || 'HIS'}`,
           data: `${dia} de ${mes}, ${hora}`,
-          vagasTotais, vagasPreenchidas, vagasLedor, vagasFiscal,
+          vagasTotais: vagasTotaisParaMim,
+          vagasPreenchidas: vagasPreenchidasParaMim,
+          vagasDisponiveis: vagasDisponiveisParaMim,
           valor: e.valorHora ? `R$ ${e.valorHora}/hora` : 'R$ 37/hora',
           serie: e.serie || 'HIS',
           status: temVaga ? 'Aberta' : 'Na Reserva',
@@ -151,14 +166,10 @@ export const DashboardCandidato = () => {
         const idEvento    = alocacao.idEvento    ?? alocacao.id_evento    ?? alocacao.IdEvento;
         const papelEvento = alocacao.papelEvento ?? alocacao.papel_evento ?? alocacao.PapelEvento ?? 'N/A';
 
-        // Pega o checkIn e checkOut — aceita camelCase e PascalCase
         const checkIn  = alocacao.checkInTime  || alocacao.CheckInTime  || null;
         const checkOut = alocacao.checkOutTime || alocacao.CheckOutTime || null;
 
-        // ✅ FIX do typo: era horasTrabalhadasn (com n)
-        const horas = Number(
-          alocacao.horasTrabalhadas ?? alocacao.HorasTrabalhadas ?? 0
-        );
+        const horas = Number(alocacao.horasTrabalhadas ?? alocacao.HorasTrabalhadas ?? 0);
 
         const evento = dadosEventos.find(ev => Number(ev.idEvento) === Number(idEvento));
 
@@ -189,24 +200,17 @@ export const DashboardCandidato = () => {
         };
 
         const agora = new Date();
-const eventoJaPassou = dataPura && dataPura < agora;
+        const eventoJaPassou = dataPura && dataPura < agora;
 
-if (checkOut) {
-  // Tem saída → Provas Aplicadas
-  historico.push(provaEstruturada);
-} else if (checkIn) {
-  // Tem entrada mas não saída → continua em Minhas Candidaturas (ainda ativo)
-  pendentes.push(provaEstruturada);
-} else if (!eventoJaPassou) {
-  // Evento futuro sem ponto → Minhas Candidaturas
-  pendentes.push(provaEstruturada);
+        if (checkOut) {
+          historico.push(provaEstruturada);
+        } else if (checkIn) {
+          pendentes.push(provaEstruturada);
+        } else if (!eventoJaPassou) {
+          pendentes.push(provaEstruturada);
 
-          
-          
-
-          // ✅ RESTAURA estado do ponto se já bateu entrada hoje
+          // RESTAURA estado do ponto se já bateu entrada hoje
           if (checkIn && dataPura && ehHoje(dataPura)) {
-            // Já bateu entrada hoje — restaura o estado
             if (registrosRestaurados.length === 0) {
               registrosRestaurados.push({
                 tipo:   'entrada',
@@ -221,10 +225,9 @@ if (checkOut) {
       setMinhasCandidaturas(pendentes);
       setProvasAplicadas(historico);
 
-      // Restaura o estado visual do ponto
       if (registrosRestaurados.length > 0) {
         setRegistrosDeHoje(registrosRestaurados);
-        setStatusPonto('saida'); // Já bateu entrada, esperando saída
+        setStatusPonto('saida');
       }
 
     } catch (error) {
@@ -256,7 +259,6 @@ if (checkOut) {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
   // ─── 10. ID DO EVENTO DE HOJE ────────────────────────────────
-  // Usa dataPura para comparar com hoje corretamente
   const provaDeHoje = minhasCandidaturas.find(c => {
     return c.dataPura && ehHoje(c.dataPura) && c.status === 'Confirmado';
   });
@@ -266,7 +268,6 @@ if (checkOut) {
   // ─── 11. BATER PONTO ─────────────────────────────────────────
   const handleRegistrarPonto = async () => {
     if (!idEventoHoje) {
-      // Se não tem prova hoje, usa a primeira candidatura confirmada para teste
       const primeiraConfirmada = minhasCandidaturas.find(c => c.status === 'Confirmado');
       if (!primeiraConfirmada) {
         alert('Você não possui nenhuma prova confirmada para hoje.');
@@ -278,7 +279,6 @@ if (checkOut) {
 
     try {
       if (statusPonto === 'entrada') {
-        // ✅ FIX: era api.put, deve ser api.post
         await api.post(`/alocacoes/${idParaUsar}/checkin`);
 
         setRegistrosDeHoje(prev => [...prev, {
@@ -304,7 +304,6 @@ if (checkOut) {
     const idParaUsar = idEventoHoje || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
 
     try {
-      // ✅ FIX: era api.put, deve ser api.post
       await api.post(`/alocacoes/${idParaUsar}/checkout`);
 
       setRegistrosDeHoje(prev => [...prev, {
@@ -315,7 +314,6 @@ if (checkOut) {
       setScaneando(false);
       setStatusPonto('concluido');
 
-      // Recarrega para mover prova para "Provas Aplicadas"
       await carregarMinhasCandidaturas();
     } catch (error) {
       console.error('Erro checkout:', error.response?.data);
@@ -348,10 +346,7 @@ if (checkOut) {
         funcao: perfilLogado, status: 'Confirmado',
       };
       setMinhasCandidaturas(prev => [...prev, nova]);
-      setProvasDisponiveis(prev =>
-        prev.map(p => p.id === provaSelecionada.id
-          ? { ...p, vagasPreenchidas: (p.vagasPreenchidas || 0) + 1 } : p)
-      );
+      carregarEventos(); // Atualiza a lista completa e refaz as contas
       alert('Inscrição confirmada com sucesso!');
       setProvaSelecionada(null);
       setActiveTab('candidaturas');
@@ -373,6 +368,8 @@ if (checkOut) {
   const efetivarCancelamento = async () => {
     if (!motivoCancelamento) { alert('Selecione um motivo.'); return; }
     try {
+      // ATENÇÃO: Aqui você precisará chamar a API de cancelamento futuramente!
+      // ex: await api.delete(`/alocacoes/${candidaturaParaCancelar.id}`);
       setMinhasCandidaturas(prev => prev.filter(c => c.id !== candidaturaParaCancelar.id));
       alert(`Inscrição cancelada: ${motivoCancelamento}`);
       setCandidaturaParaCancelar(null);
@@ -427,63 +424,54 @@ if (checkOut) {
 
       {/* TABS */}
       <div className="tabs-bar">
-  {/* 1. Provas Aplicadas */}
-  <button className={`tab ${activeTab === 'aplicadas' ? 'active' : ''}`} onClick={() => { setActiveTab('aplicadas'); setCandidaturaEmDetalhe(null); }}>
-    <div className="icon-container">
-      <FileCheck size={24} strokeWidth={1.5} />
-      {/* Bolinha Azul */}
-      {provasAplicadas.length > 0 && (
-        <span className="badge-flutuante" style={{ backgroundColor: '#3b82f6' }}>{provasAplicadas.length}</span>
-      )}
-    </div>
-    <span className="tab-label">Aplicadas</span>
-  </button>
+        <button className={`tab ${activeTab === 'aplicadas' ? 'active' : ''}`} onClick={() => { setActiveTab('aplicadas'); setCandidaturaEmDetalhe(null); }}>
+          <div className="icon-container">
+            <FileCheck size={24} strokeWidth={1.5} />
+            {provasAplicadas.length > 0 && (
+              <span className="badge-flutuante" style={{ backgroundColor: '#3b82f6' }}>{provasAplicadas.length}</span>
+            )}
+          </div>
+          <span className="tab-label">Aplicadas</span>
+        </button>
 
-  {/* 2. Minhas Candidaturas */}
-  <button className={`tab ${activeTab === 'candidaturas' ? 'active' : ''}`} onClick={() => { setActiveTab('candidaturas'); setCandidaturaEmDetalhe(null); }}>
-    <div className="icon-container">
-      <FileText size={24} strokeWidth={1.5} />
-      {/* Bolinha Verde */}
-      {minhasCandidaturas.length > 0 && (
-        <span className="badge-flutuante" style={{ backgroundColor: '#16a34a' }}>{minhasCandidaturas.length}</span>
-      )}
-    </div>
-    <span className="tab-label">Candidaturas</span>
-  </button>
+        <button className={`tab ${activeTab === 'candidaturas' ? 'active' : ''}`} onClick={() => { setActiveTab('candidaturas'); setCandidaturaEmDetalhe(null); }}>
+          <div className="icon-container">
+            <FileText size={24} strokeWidth={1.5} />
+            {minhasCandidaturas.length > 0 && (
+              <span className="badge-flutuante" style={{ backgroundColor: '#16a34a' }}>{minhasCandidaturas.length}</span>
+            )}
+          </div>
+          <span className="tab-label">Candidaturas</span>
+        </button>
 
-  {/* 3. Provas Disponíveis */}
-  <button className={`tab ${activeTab === 'provas' ? 'active' : ''}`} onClick={() => { setActiveTab('provas'); setCandidaturaEmDetalhe(null); }}>
-    <div className="icon-container">
-      <Search size={24} strokeWidth={1.5} />
-    </div>
-    <span className="tab-label">Disponíveis</span>
-  </button>
+        <button className={`tab ${activeTab === 'provas' ? 'active' : ''}`} onClick={() => { setActiveTab('provas'); setCandidaturaEmDetalhe(null); }}>
+          <div className="icon-container">
+            <Search size={24} strokeWidth={1.5} />
+          </div>
+          <span className="tab-label">Disponíveis</span>
+        </button>
 
-  {/* 4. Cálculo de Ganhos */}
-  <button className={`tab ${activeTab === 'ganhos' ? 'active' : ''}`} onClick={() => { setActiveTab('ganhos'); setCandidaturaEmDetalhe(null); }}>
-    <div className="icon-container">
-      <Wallet size={24} strokeWidth={1.5} />
-    </div>
-    <span className="tab-label">Ganhos</span>
-  </button>
+        <button className={`tab ${activeTab === 'ganhos' ? 'active' : ''}`} onClick={() => { setActiveTab('ganhos'); setCandidaturaEmDetalhe(null); }}>
+          <div className="icon-container">
+            <Wallet size={24} strokeWidth={1.5} />
+          </div>
+          <span className="tab-label">Ganhos</span>
+        </button>
 
-  {/* 5. Bater Ponto */}
-  <button className={`tab ${activeTab === 'ponto' ? 'active' : ''}`} onClick={() => { setActiveTab('ponto'); setCandidaturaEmDetalhe(null); setScaneando(false); }}>
-    <div className="icon-container">
-      <Clock size={24} strokeWidth={1.5} />
-    </div>
-    <span className="tab-label">Ponto</span>
-  </button>
+        <button className={`tab ${activeTab === 'ponto' ? 'active' : ''}`} onClick={() => { setActiveTab('ponto'); setCandidaturaEmDetalhe(null); setScaneando(false); }}>
+          <div className="icon-container">
+            <Clock size={24} strokeWidth={1.5} />
+          </div>
+          <span className="tab-label">Ponto</span>
+        </button>
 
-  {/* 6. Meu Perfil */}
-  {/* No desktop mantém o marginLeft: auto, mas o CSS abaixo vai anulá-lo no celular */}
-  <button className={`tab ${activeTab === 'perfil' ? 'active' : ''}`} style={{ marginLeft: 'auto' }} onClick={() => setActiveTab('perfil')}>
-    <div className="icon-container">
-      <User size={24} strokeWidth={1.5} />
-    </div>
-    <span className="tab-label">Perfil</span>
-  </button>
-</div>
+        <button className={`tab ${activeTab === 'perfil' ? 'active' : ''}`} style={{ marginLeft: 'auto' }} onClick={() => setActiveTab('perfil')}>
+          <div className="icon-container">
+            <User size={24} strokeWidth={1.5} />
+          </div>
+          <span className="tab-label">Perfil</span>
+        </button>
+      </div>
 
       <main className="page">
 
@@ -493,7 +481,7 @@ if (checkOut) {
             <div className="page-header">
               <div>
                 <h1 className="page-title">Provas Disponíveis</h1>
-                <p className="page-sub">Veja as provas abertas, candidate-se e acompanhe sua reserva.</p>
+                <p className="page-sub">Veja as provas abertas para <strong>{perfilLogado}</strong>, candidate-se e acompanhe sua reserva.</p>
               </div>
             </div>
             <div className="stats-candidato" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' }}>
@@ -507,7 +495,7 @@ if (checkOut) {
               <div className="stat" style={{ padding: '20px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div className="stat-ico" style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', fontSize: '24px' }}>✅</div>
                 <div>
-                  <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Vagas com Disponibilidade</div>
+                  <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Vagas Disponíveis</div>
                   <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', textAlign: 'center', color: '#0f172a' }}>{totalVagasLivres}</div>
                 </div>
               </div>
@@ -525,91 +513,151 @@ if (checkOut) {
                 <button style={{ background: 'none', border: 'none', padding: '12px 0', fontSize: '14px', fontWeight: '600', color: activeSubTab === 'reserva' ? '#2563eb' : '#64748b', borderBottom: activeSubTab === 'reserva' ? '2px solid #2563eb' : '2px solid transparent', cursor: 'pointer' }} onClick={() => setActiveSubTab('reserva')}>👥 Vagas Preenchidas (Reserva)</button>
               </div>
               <div className="tbl-wrap" style={{ padding: '20px 0 0 0' }}>
+                
+                {/* ─── ABA: COM VAGAS ─── */}
                 {activeSubTab === 'comVagas' && (
                   provasDisponiveis.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
                       <div style={{ fontSize: '44px', marginBottom: '12px' }}>📭</div>
-                      <h3 style={{ color: '#1e293b', marginBottom: '5px' }}>Nenhuma prova com vagas no momento</h3>
+                      <h3 style={{ color: '#1e293b', marginBottom: '5px' }}>Nenhuma prova disponível para o seu perfil no momento</h3>
                       <p style={{ color: '#64748b', fontSize: '14px' }}>Aguardando o lançamento de novos eventos pela coordenação.</p>
                     </div>
                   ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead><tr>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>PROVA</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>DATA</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>VAGAS</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>VALOR/HORA</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>STATUS</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>AÇÃO</th>
-                      </tr></thead>
-                      <tbody>
-                        {provasDisponiveis.map(prova => (
-                          <tr key={prova.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '16px 24px' }}>
-                              <div style={{ fontWeight: '600', color: '#0f172a' }}>{prova.titulo}</div>
-                              <div style={{ fontSize: '12px', color: '#64748b' }}>{prova.detalhes}</div>
-                            </td>
-                            <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.data}</td>
-                            <td style={{ padding: '16px 24px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ width: '80px', height: '6px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                                  <div style={{ width: `${prova.vagasTotais > 0 ? (prova.vagasPreenchidas / prova.vagasTotais) * 100 : 0}%`, height: '100%', background: '#3b82f6' }} />
+                    <>
+                      {/* TABELA DESKTOP */}
+                      <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead><tr>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>PROVA</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>DATA</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>OCUPAÇÃO ({perfilLogado.toUpperCase()})</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>VALOR/HORA</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>STATUS</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>AÇÃO</th>
+                        </tr></thead>
+                        <tbody>
+                          {provasDisponiveis.map(prova => (
+                            <tr key={prova.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '16px 24px' }}>
+                                <div style={{ fontWeight: '600', color: '#0f172a' }}>{prova.titulo}</div>
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>{prova.detalhes}</div>
+                              </td>
+                              <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.data}</td>
+                              <td style={{ padding: '16px 24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <div style={{ width: '80px', height: '6px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${prova.vagasTotais > 0 ? (prova.vagasPreenchidas / prova.vagasTotais) * 100 : 0}%`, height: '100%', background: '#3b82f6' }} />
+                                  </div>
+                                  <span style={{ fontSize: '13px' }}>{prova.vagasPreenchidas}/{prova.vagasTotais}</span>
                                 </div>
-                                <span style={{ fontSize: '13px' }}>{prova.vagasPreenchidas}/{prova.vagasTotais}</span>
+                              </td>
+                              <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.valor}</td>
+                              <td style={{ padding: '16px 24px' }}>
+                                <span style={{ border: '1px solid #86efac', background: '#f0fdf4', color: '#16a34a', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>{prova.status}</span>
+                              </td>
+                              <td style={{ padding: '16px 24px' }}>
+                                <button onClick={() => setProvaSelecionada(prova)} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', cursor: 'pointer' }}>Candidatar-se →</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {/* CARDS MOBILE */}
+                      <div className="mobile-cards-container">
+                        {provasDisponiveis.map(prova => {
+                          const porcentagem = prova.vagasTotais > 0 ? (prova.vagasPreenchidas / prova.vagasTotais) * 100 : 0;
+                          return (
+                            <div className="prova-mobile-card" key={prova.id}>
+                              <div className="prova-mobile-top">
+                                <div className="prova-mobile-nome">{prova.titulo}
+                                  <div className="prova-mobile-sub">{prova.detalhes}</div>
+                                </div>
+                                <span className="status-pill status-aberta">{prova.status}</span>
                               </div>
-                            </td>
-                            <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.valor}</td>
-                            <td style={{ padding: '16px 24px' }}>
-                              <span style={{ border: '1px solid #86efac', background: '#f0fdf4', color: '#16a34a', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>{prova.status}</span>
-                            </td>
-                            <td style={{ padding: '16px 24px' }}>
-                              <button onClick={() => setProvaSelecionada(prova)} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', cursor: 'pointer' }}>Candidatar-se →</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              <div className="prova-mobile-data">📅 {prova.data} • {prova.valor}</div>
+                              <div className="prova-mobile-bottom">
+                                <div className="prova-mobile-progress">
+                                  <div className="prova-mobile-bar">
+                                    <div className="prova-mobile-bar-fill" style={{ width: `${porcentagem}%` }}></div>
+                                  </div>
+                                  <span className="prova-mobile-vagas">{prova.vagasPreenchidas}/{prova.vagasTotais}</span>
+                                </div>
+                                <button onClick={() => setProvaSelecionada(prova)} className="btn-candidatar-mobile">Candidatar-se →</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )
                 )}
+
+                {/* ─── ABA: RESERVA ─── */}
                 {activeSubTab === 'reserva' && (
                   provasEmReserva.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
                       <div style={{ fontSize: '44px', marginBottom: '12px' }}>⏳</div>
-                      <h3 style={{ color: '#1e293b' }}>Nenhuma prova em lista de reserva</h3>
+                      <h3 style={{ color: '#1e293b' }}>Nenhuma prova em lista de reserva para o seu perfil</h3>
                     </div>
                   ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead><tr>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>PROVA</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>DATA</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>OCUPAÇÃO</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>VALOR/HORA</th>
-                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>AÇÃO</th>
-                      </tr></thead>
-                      <tbody>
+                    <>
+                      {/* TABELA DESKTOP */}
+                      <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead><tr>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>PROVA</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>DATA</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>OCUPAÇÃO</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>VALOR/HORA</th>
+                          <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>AÇÃO</th>
+                        </tr></thead>
+                        <tbody>
+                          {provasEmReserva.map(prova => (
+                            <tr key={prova.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '16px 24px' }}>
+                                <div style={{ fontWeight: '600', color: '#0f172a' }}>{prova.titulo}</div>
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>{prova.detalhes}</div>
+                              </td>
+                              <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.data}</td>
+                              <td style={{ padding: '16px 24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <div style={{ width: '80px', height: '6px', background: '#64748b', borderRadius: '4px' }} />
+                                  <span style={{ fontSize: '13px' }}>{prova.vagasTotais}/{prova.vagasTotais}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.valor}</td>
+                              <td style={{ padding: '16px 24px' }}>
+                                <button onClick={() => setProvaSelecionada(prova)} style={{ background: 'none', border: 'none', color: '#ca8a04', fontWeight: '600', cursor: 'pointer' }}>Entrar na Reserva →</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {/* CARDS MOBILE */}
+                      <div className="mobile-cards-container">
                         {provasEmReserva.map(prova => (
-                          <tr key={prova.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '16px 24px' }}>
-                              <div style={{ fontWeight: '600', color: '#0f172a' }}>{prova.titulo}</div>
-                              <div style={{ fontSize: '12px', color: '#64748b' }}>{prova.detalhes}</div>
-                            </td>
-                            <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.data}</td>
-                            <td style={{ padding: '16px 24px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ width: '80px', height: '6px', background: '#64748b', borderRadius: '4px' }} />
-                                <span style={{ fontSize: '13px' }}>{prova.vagasTotais}/{prova.vagasTotais}</span>
+                          <div className="prova-mobile-card" key={prova.id}>
+                            <div className="prova-mobile-top">
+                              <div className="prova-mobile-nome">{prova.titulo}
+                                <div className="prova-mobile-sub">{prova.detalhes}</div>
                               </div>
-                            </td>
-                            <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.valor}</td>
-                            <td style={{ padding: '16px 24px' }}>
-                              <button onClick={() => setProvaSelecionada(prova)} style={{ background: 'none', border: 'none', color: '#ca8a04', fontWeight: '600', cursor: 'pointer' }}>Entrar na Reserva →</button>
-                            </td>
-                          </tr>
+                              <span className="status-pill status-reserva">{prova.status}</span>
+                            </div>
+                            <div className="prova-mobile-data">📅 {prova.data} • {prova.valor}</div>
+                            <div className="prova-mobile-bottom">
+                              <div className="prova-mobile-progress">
+                                <div className="prova-mobile-bar" style={{ background: '#64748b' }}></div>
+                                <span className="prova-mobile-vagas">{prova.vagasTotais}/{prova.vagasTotais}</span>
+                              </div>
+                              <button onClick={() => setProvaSelecionada(prova)} className="btn-candidatar-mobile" style={{ color: '#ca8a04' }}>Entrar na Reserva →</button>
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
+                      </div>
+                    </>
                   )
                 )}
+
               </div>
             </div>
           </div>
@@ -644,7 +692,6 @@ if (checkOut) {
                               <span>{cand.serie}</span>
                               <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>{cand.funcao}</span>
                               <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>{cand.status}</span>
-                              {/* Mostra entrada se já bateu ponto */}
                               {cand.entrada && cand.entrada !== '--:--' && (
                                 <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', fontSize: '11px' }}>
                                   🕐 Entrada: {cand.entrada}
