@@ -896,7 +896,7 @@ export const DashboardCandidato = () => {
             </div>
 
             {/* Aviso se não tem prova hoje */}
-            {!idEventoHoje && minhasCandidaturas.length > 0 && (
+            {!idProvaAtiva && minhasCandidaturas.length > 0 && (
               <div style={{ background: '#fffbeb', border: '1px solid #fde047', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', fontSize: '13px', color: '#92400e' }}>
                 ⚠️ Você não tem prova agendada para hoje. O botão usará sua candidatura mais recente para fins de teste.
               </div>
