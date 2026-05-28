@@ -989,3 +989,20 @@
   .page  { padding: 20px; }
   .modal { max-width: 560px; }
 }
+
+/* Esconde os cards de celular quando estiver no PC */
+.mobile-cards-container {
+  display: none;
+}
+
+/* Quando for tela de celular, esconde a tabela e mostra os cards */
+@media (max-width: 768px) {
+  .mobile-cards-container {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .desktop-table {
+    display: none !important;
+  }
+}

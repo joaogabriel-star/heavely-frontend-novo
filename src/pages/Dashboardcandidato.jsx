@@ -99,15 +99,22 @@ export const DashboardCandidato = () => {
         const vagasLedor  = e.totalVagasLedor  ?? e.vagasLedor  ?? 0;
         const vagasFiscal = e.totalVagasFiscal ?? e.vagasFiscal ?? 0;
 
-        // 🛑 FILTRO DE PERFIL: Se não tem vaga para o perfil logado, ignora a prova!
-        if (perfilLogado === 'Ledor' && vagasLedor <= 0) return;
+        // 1. NOVA REGRA DE FILTRO: Fiscal só vê fiscal. Ledor vê ambos.
         if (perfilLogado === 'Fiscal' && vagasFiscal <= 0) return;
+        if (perfilLogado === 'Ledor' && vagasLedor <= 0 && vagasFiscal <= 0) return;
 
-        // Calcula as vagas baseado SOMENTE no perfil de quem está olhando
+        // 2. DEFINE O PAPEL DO CANDIDATO NAQUELA PROVA
+        // Se for Ledor, mas a prova SÓ tem vaga para Fiscal, ele concorre como Fiscal.
+        let papelConcorrencia = perfilLogado;
+        if (perfilLogado === 'Ledor' && vagasLedor === 0 && vagasFiscal > 0) {
+            papelConcorrencia = 'Fiscal';
+        }
+
+        // 3. CALCULA AS BARRAS BASEADO NO PAPEL QUE ELE ASSUMIU
         let vagasTotaisParaMim = 0;
         let vagasDisponiveisParaMim = 0;
 
-        if (perfilLogado === 'Ledor') {
+        if (papelConcorrencia === 'Ledor') {
             vagasTotaisParaMim = vagasLedor;
             vagasDisponiveisParaMim = Math.max(0, e.vagasLedorDisponiveis !== undefined ? e.vagasLedorDisponiveis : vagasLedor);
         } else {
@@ -128,7 +135,9 @@ export const DashboardCandidato = () => {
 
         const provaFormatada = {
           id: e.idEvento, titulo,
-          detalhes: `Vaga para: ${perfilLogado} · ${e.serie || 'HIS'}`,
+          // GUARDA A INFORMAÇÃO SE ELE VAI COMO LEDOR OU FISCAL NESTA PROVA ESPECÍFICA
+          funcaoInscricao: papelConcorrencia, 
+          detalhes: `Vaga para: ${papelConcorrencia} · ${e.serie || 'HIS'}`,
           data: `${dia} de ${mes}, ${hora}`,
           vagasTotais: vagasTotaisParaMim,
           vagasPreenchidas: vagasPreenchidasParaMim,
@@ -338,12 +347,13 @@ export const DashboardCandidato = () => {
   // ─── 13. CANDIDATURA ─────────────────────────────────────────
   const confirmarCandidatura = async () => {
     try {
-      await eventoService.inscreverEmEvento(provaSelecionada.id, { PapelEvento: perfilLogado });
+      await eventoService.inscreverEmEvento(provaSelecionada.id, { PapelEvento: provaSelecionada.funcaoInscricao });
       const nova = {
         id: provaSelecionada.id, titulo: provaSelecionada.titulo,
         data: provaSelecionada.data, dataPura: null,
         serie: provaSelecionada.serie || 'HIS',
-        funcao: perfilLogado, status: 'Confirmado',
+        funcao: provaSelecionada.funcaoInscricao , 
+        status: 'Confirmado',
       };
       setMinhasCandidaturas(prev => [...prev, nova]);
       carregarEventos(); // Atualiza a lista completa e refaz as contas
