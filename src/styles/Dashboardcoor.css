@@ -559,7 +559,6 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
    RESPONSIVIDADE CELULAR (ESTILO APP NATIVO)
 ══════════════════════════════════════════ */
 
-/* ── BOTTOM NAV (só aparece no mobile) ──────────────────── */
 .bottom-nav {
   display: none;
 }
@@ -621,51 +620,9 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
   }
  
   /* ── TABS BAR → ESCONDE NO MOBILE ───────────────────── */
- .tabs-bar {
-    position: fixed !important;
-    bottom: 0 !important;
-    top: auto !important; /* Cancela o 'top: 56px' do computador */
-    left: 0 !important;
-    width: 100% !important;
-    background-color: #111827 !important;
-    display: flex !important;
-    justify-content: space-around !important;
-    align-items: center !important;
-    padding: 12px 0 16px 0 !important;
-    margin: 0 !important;
-    z-index: 9999 !important;
-    border-top: 1px solid #374151 !important;
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.2) !important;
+  .tabs-bar {
+    display: none;
   }
-
-  /* Empilha o ícone e o texto */
-  .tab {
-    flex-direction: column !important; /* Ícone em cima, texto embaixo */
-    gap: 4px !important;
-    font-size: 10px !important;
-    color: #9ca3af !important; /* Cinza inativo */
-    border-bottom: none !important; /* Remove a linha vermelha do computador */
-    padding: 0 !important;
-    flex: 1 !important;
-    margin: 0 !important; /* Previne erros com o botão de perfil */
-  }
-
-  .tab.active {
-    color: #ffffff !important; /* Branco quando selecionado */
-  }
-
-  /* Borda escura para a bolinha de notificação combinar com o fundo */
-  .badge-flutuante {
-    border: 2px solid #111827 !important;
-  }
-
-  /* Previne que o conteúdo da página fique escondido atrás do menu */
-  .dash-coord-container,
-  .dash-candidato-container,
-  .dashboard-container {
-    padding-bottom: 90px !important; 
-  }
-}
  
   /* ── PAGE/PANEL ──────────────────────────────────────── */
   .page {
@@ -1126,6 +1083,7 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
     text-align: center;
   }
  
+} /* fim @media 768px */
  
 /* ── TABLET (769px – 1024px) ─────────────────────────── */
 @media (min-width: 769px) and (max-width: 1024px) {
