@@ -59,6 +59,7 @@ export const DashboardCandidato = () => {
   const formatarHora = (dataString) => {
     if (!dataString) return '--:--';
     try {
+      const dataCorrigida = dataString.endsWith('Z') ? dataString : dataString + 'Z';
       return new Date(dataString).toLocaleTimeString('pt-BR', {
         hour: '2-digit', minute: '2-digit'
       });
@@ -92,7 +93,7 @@ export const DashboardCandidato = () => {
 
       dadosEventos.forEach(e => {
         if (e.statusEvento !== 'ATIVO') return;
-        const dataDaProva = new Date(e.dataProva);
+        const dataDaProva = new Date(e.dataProva.endsWith('Z') ? e.dataProva : e.dataProva + 'Z');
         if (dataDaProva <= agora) return;
 
         // Vagas cadastradas pelo coordenador
@@ -186,7 +187,7 @@ export const DashboardCandidato = () => {
         let dataPura      = null;
 
         if (evento?.dataProva) {
-          const d = new Date(evento.dataProva);
+          const d = new Date(evento.dataProva.endsWith('Z') ? evento.dataProva : evento.dataProva + 'Z');
           dataPura = d;
           if (!isNaN(d.getTime())) {
             dataFormatada = `${d.getDate()} de ${d.toLocaleDateString('pt-BR', { month: 'long' })}, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
