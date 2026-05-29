@@ -279,6 +279,7 @@ export const DashboardCandidato = () => {
   const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
 
   // ─── 11. BATER PONTO ─────────────────────────────────────────
+  // ─── 11. BATER PONTO ─────────────────────────────────────────
   const handleRegistrarPonto = async () => {
     if (!idProvaAtiva) {
       const primeiraConfirmada = minhasCandidaturas.find(c => c.status === 'Confirmado');
