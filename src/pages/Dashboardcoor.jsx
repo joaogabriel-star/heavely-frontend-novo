@@ -27,6 +27,9 @@ export const DashboardCoord = () => {
   const [qrFullscreen,  setQrFullscreen]  = useState(false);
   const qrTimerRef = useRef(null);
 
+  // Estado para armazenar a foto de perfil em Base64
+  const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('avatarUsuario') || '');
+
   const [eventoFormData, setEventoFormData] = useState({
     nome: '', serie: '', data: '', horario: '',
     duracao: '', vagas: '', valor: '', tipoFuncao: 'Ledor', observacoes: ''
@@ -66,7 +69,7 @@ export const DashboardCoord = () => {
       const agora = new Date();
 
       setEventos(dadosEventos.map(e => {
-        const dataProva   = new Date(e.dataProva);
+        const dataProva   = new Date(e.dataProva.endsWith('Z') ? e.dataProva : e.dataProva + 'Z');
         const passou      = dataProva < agora;
         const vagasLedor  = e.totalVagasLedor  ?? e.vagasLedor  ?? 0;
         const vagasFiscal = e.totalVagasFiscal ?? e.vagasFiscal ?? 0;
@@ -80,12 +83,10 @@ export const DashboardCoord = () => {
           vagasPreenchidas: e.vagasPreenchidas ?? 0,
           reservas:         0,
 
-          // ── MUDANÇA 1: guarda os campos brutos para o cálculo inteligente ──
           vagasLedor,
           vagasFiscal,
           vagasLedorDisponiveis:  e.vagasLedorDisponiveis,
           vagasFiscalDisponiveis: e.vagasFiscalDisponiveis,
-          // ────────────────────────────────────────────────────────────────────
 
           data: dataProva.toLocaleString('pt-BR', {
             day: '2-digit', month: '2-digit',
@@ -110,6 +111,7 @@ export const DashboardCoord = () => {
         escolaridade:    c.escolaridade   || 'N/A',
         cursoFormacao:   c.cursoFormacao  || 'N/A',
         materias:        c.materiasFacilidade || 'N/A',
+        experienciaProfissional: c.experienciaProfissional || 'N/A',
         linkDiplomaLedor: c.linkDiplomaLedor || null,
       })));
 
@@ -122,12 +124,26 @@ export const DashboardCoord = () => {
   // ── HANDLERS GERAIS ────────────────────────────────────────────
   const handlePerfilChange = (e) => { const { name, value } = e.target; setPerfilFormData(prev => ({ ...prev, [name]: value })); };
   const handleInputChange  = (e) => { const { name, value } = e.target; setEventoFormData(prev => ({ ...prev, [name]: value })); };
+  
+  const handleFotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        localStorage.setItem('avatarUsuario', reader.result);
+        setAvatarUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSalvarPerfil = () => {
     if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
       alert('As senhas não coincidem!'); return;
     }
     alert('Perfil atualizado com sucesso!');
   };
+
   const getAvatarColor = (name) => {
     if (!name) return '#ef4444';
     const colors = ['#ef4444', '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6'];
@@ -201,12 +217,10 @@ export const DashboardCoord = () => {
         vagasPreenchidas: salvo.vagasPreenchidas || 0,
         reservas:         0,
 
-        // ── MUDANÇA 2: mesmos campos brutos no evento recém-criado ──
         vagasLedor:            vl,
         vagasFiscal:           vf,
         vagasLedorDisponiveis:  salvo.vagasLedorDisponiveis,
         vagasFiscalDisponiveis: salvo.vagasFiscalDisponiveis,
-        // ────────────────────────────────────────────────────────────
 
         data: new Date(salvo.dataProva).toLocaleString('pt-BR', {
           day:'2-digit', month:'2-digit', year:'numeric',
@@ -224,34 +238,48 @@ export const DashboardCoord = () => {
     }
   };
 
-  // ── EVENTOS: DETALHES ──────────────────────────────────────────
+  // ── EVENTOS: DETALHES ──────────────────────────────────
   const abrirDetalhesEvento = async (ev) => {
     setEventoEmDetalhe(ev);
     setJustificativasAbertas(new Set());
     setCancelamentosEvento([]);
     try {
       const resposta = await api.get(`/alocacoes/${ev.id}/lista`);
-      const todas = resposta.data.map(a => ({
-        id:               a.idAlocacao  || a.id,
-        nome:             a.nomeUsuario || 'Nome não informado',
-        email:            a.email       || 'Sem e-mail',
-        funcao:           a.papelEvento || 'Ledor',
-        sala:             a.salaDesignada || '',
-        status:           a.statusParticipacao === 'Confirmado' ? 'Confirmado'
-                        : a.statusParticipacao === 'Cancelado'  ? 'Cancelado'
-                        :                                         'Na Reserva',
-        horarioEntrada:   a.horarioEntrada || '',
-        horarioSaida:     a.horarioSaida   || '',
-        motivo:           a.motivoCancelamento           || '',
-        justificativa:    a.justificativaCancelamento    || '',
-        dataCancelamento: a.dataCancelamento
-          ? (() => {
-              const d = new Date(a.dataCancelamento);
-              return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
-            })()
-          : '',
-        antecedencia: a.antecedencia || '',
-      }));
+      const todas = resposta.data.map(a => {
+        // Correção de Status para aceitar pessoas confirmadas ou presentes
+        const statusFiltrado = (a.statusParticipacao === 'Confirmado' || a.statusParticipacao === 'Presente') ? 'Confirmado'
+                             : a.statusParticipacao === 'Cancelado'  ? 'Cancelado'
+                             :                                         'Na Reserva';
+
+        // Função interna para ler as chaves de hora corretas do DTO C# (checkInTime e checkOutTime)
+        const formatarHoraBatida = (isoString) => {
+          if (!isoString) return '';
+          try {
+            const d = new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
+            return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          } catch { return ''; }
+        };
+
+        return {
+          id:               a.idAlocacao  || a.id,
+          nome:             a.nomeUsuario || 'Nome não informado',
+          email:            a.email       || 'Sem e-mail',
+          funcao:           a.papelEvento || 'Ledor',
+          sala:             a.salaDesignada || '',
+          status:           statusFiltrado,
+          horarioEntrada:   formatarHoraBatida(a.checkInTime),
+          horarioSaida:     formatarHoraBatida(a.checkOutTime),
+          motivo:           a.motivoCancelamento           || '',
+          justificativa:    a.justificativaCancelamento    || '',
+          dataCancelamento: a.dataCancelamento
+            ? (() => {
+                const d = new Date(a.dataCancelamento);
+                return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+              })()
+            : '',
+          antecedencia: a.antecedencia || '',
+        };
+      });
       setAlocacoesEvento(todas.filter(a => a.status !== 'Cancelado'));
       setCancelamentosEvento(todas.filter(a => a.status === 'Cancelado'));
     } catch (error) {
@@ -292,16 +320,19 @@ export const DashboardCoord = () => {
     } catch (e) { console.error("Erro ao converter data:", e); setEditMode(true); setIdEventoEditando(eventoEmDetalhe.id); setIsModalOpen(true); }
   };
 
+  // ── EDICAO CORRIGIDA (SEM TIMEOUT DE 3 HORAS) ──────────────────────
   const handleSalvarEdicao = async (e) => {
     e.preventDefault();
     try {
-      const fusoBrasilia = "-03:00";
       const [ano, mes, dia] = eventoFormData.data.split('-');
       const [hora, min]     = eventoFormData.horario.split(':');
-      const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00${fusoBrasilia}`;
+      
+      // Enviamos a string limpa sem fuso forçado, permitindo que o C# processe Brasília perfeitamente
+      const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00`;
       const duracao  = parseInt(eventoFormData.duracao) || 1;
       const horaFim  = parseInt(hora) + duracao;
-      const dataFimExata = `${ano}-${mes}-${dia}T${horaFim.toString().padStart(2,'0')}:${min}:00${fusoBrasilia}`;
+      const dataFimExata = `${ano}-${mes}-${dia}T${horaFim.toString().padStart(2,'0')}:${min}:00`;
+      
       const vagas = parseInt(eventoFormData.vagas) || 0;
       const dto = {
         TituloProva: eventoFormData.nome, Serie: eventoFormData.serie || 'HIS',
@@ -312,9 +343,10 @@ export const DashboardCoord = () => {
         VagasLedor:  eventoFormData.tipoFuncao === 'Ledor'  ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.ceil(vagas / 2)  : 0),
         VagasFiscal: eventoFormData.tipoFuncao === 'Fiscal' ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.floor(vagas / 2) : 0),
       };
+      
       await api.put(`/eventos/${idEventoEditando}`, dto);
       const dataFormatadaPtBr = `${dia}/${mes}/${ano}, ${hora}:${min}`;
-      setEventos(prev => prev.map(ev => ev.id === idEventoEditando ? { ...ev, titulo: dto.TituloProva, data: dataFormatadaPtBr, valor: `R$ ${dto.ValorHora}/hora` } : ev));
+      setEventos(prev => prev.map(ev => ev.id === idEventoEditando ? { ...ev, titulo: dto.TituloProva, data: dataFormatadaPtBr, valor: `${dto.ValorHora}` } : ev));
       setIsModalOpen(false);
       alert('✅ Evento atualizado com sucesso!');
     } catch (error) { console.error("Erro ao salvar edição:", error); alert("Erro ao editar."); }
@@ -327,8 +359,6 @@ export const DashboardCoord = () => {
     if (!window.confirm(`Remover ${nomeDoCandidato}?`)) return;
     try {
       await api.delete(`/alocacoes/${idDaAlocacao}`);
-      await carregarDetalhesDaProva(idEvento); 
-      await carregarEventos();
       setAlocacoesEvento(prev => prev.filter(i => (i.idAlocacao || i.IdAlocacao || i.id) !== idDaAlocacao));
       alert("✅ Inscrição cancelada com sucesso!");
     } catch (error) { console.error("Erro ao cancelar:", error); alert("Erro ao cancelar a inscrição."); }
@@ -364,9 +394,6 @@ export const DashboardCoord = () => {
   const totalAgendados  = eventos.filter(e => e.status === 'Agendado').length;
   const totalConcluidos = eventos.filter(e => e.status === 'Concluído').length;
 
-  // ──────────────────────────────────────────────────────────────
-  // RENDER
-  // ──────────────────────────────────────────────────────────────
   return (
     <div className="dashboard-container">
 
@@ -387,7 +414,13 @@ export const DashboardCoord = () => {
           <button className={`nav-btn ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => { setActiveTab('relatorios'); setEventoEmDetalhe(null); }}>Relatórios</button>
           <div className="nav-sep"></div>
           <button className="nav-avatar-wrap" onClick={() => setActiveTab('perfil')}>
-            <div className="avatar"><span>{iniciais}</span></div>
+            <div className="avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span>{iniciais}</span>
+              )}
+            </div>
             <div className="nav-user-info">
               <div className="nav-user-name">{perfilFormData.nome || nomeLogado}</div>
               <span className="nav-user-role">Coordenação</span>
@@ -464,9 +497,7 @@ export const DashboardCoord = () => {
                             if (activeSubTab==='agendados')  return ev.status==='Agendado';
                             if (activeSubTab==='concluidos') return ev.status==='Concluído';
                             return true;
-                          // ── MUDANÇA 3: map virou bloco para calcular ocupação antes do return ──
                           }).map(ev => {
-                            // Cálculo inteligente de ocupação — ignora reservas e trata null do backend
                             const vl = ev.vagasLedor  ?? 0;
                             const vf = ev.vagasFiscal ?? 0;
                             const total      = vl + vf;
@@ -474,7 +505,6 @@ export const DashboardCoord = () => {
                             const fiscalDisp = Math.max(0, ev.vagasFiscalDisponiveis !== undefined && ev.vagasFiscalDisponiveis !== null ? ev.vagasFiscalDisponiveis : vf);
                             const ocupacao   = (vl - ledorDisp) + (vf - fiscalDisp);
                             const pct        = total > 0 ? (ocupacao / total) * 100 : 0;
-                            // ────────────────────────────────────────────────────────────────────
                             return (
                               <tr key={ev.id}>
                                 <td>
@@ -483,7 +513,6 @@ export const DashboardCoord = () => {
                                 </td>
                                 <td style={{ fontSize:'14px', color:'#4b5563' }}>{ev.data}</td>
                                 <td>
-                                  {/* Coluna de ocupação agora usa o cálculo inteligente */}
                                   <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
                                     <div style={{ width:'120px', height:'6px', backgroundColor:'#e5e7eb', borderRadius:'4px', overflow:'hidden' }}>
                                       <div style={{
@@ -549,9 +578,9 @@ export const DashboardCoord = () => {
                       </div>
                       <div style={{ fontSize:'12.5px', color:'#64748b', marginTop:'2px' }}>Membros que compareceram e registraram ponto</div>
                     </div>
-                    {alocacoesEvento.filter(a => a.status === 'Confirmado').length > 0 && (
+                    {alocacoesEvento.length > 0 && (
                       <span style={{ background:'#dcfce7', color:'#15803d', padding:'3px 12px', borderRadius:'20px', fontSize:'12px', fontWeight:'700' }}>
-                        {alocacoesEvento.filter(a => a.status === 'Confirmado').length} presentes
+                        {alocacoesEvento.length} presentes
                       </span>
                     )}
                   </div>
@@ -560,10 +589,10 @@ export const DashboardCoord = () => {
                       <span key={h} style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.06em' }}>{h}</span>
                     ))}
                   </div>
-                  {alocacoesEvento.filter(a => a.status === 'Confirmado').length === 0 ? (
+                  {alocacoesEvento.length === 0 ? (
                     <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:'14px' }}>Nenhum membro confirmou presença com ponto registrado.</div>
                   ) : (
-                    alocacoesEvento.filter(a => a.status === 'Confirmado').map((m, i, arr) => (
+                    alocacoesEvento.map((m, i, arr) => (
                       <div key={m.id} style={{ display:'grid', gridTemplateColumns:'1fr 120px 180px 100px 100px', gap:'16px', padding:'14px 22px', alignItems:'center', borderBottom: i < arr.length-1 ? '1px solid #f1f5f9' : 'none' }}>
                         <div><div style={{ fontWeight:'600', color:'#0f172a', fontSize:'13.5px' }}>{m.nome}</div><div style={{ fontSize:'12px', color:'#94a3b8' }}>{m.email}</div></div>
                         <span style={{ background: m.funcao==='Ledor'?'#eff6ff':'#f3e8ff', color: m.funcao==='Ledor'?'#2563eb':'#9333ea', padding:'3px 10px', borderRadius:'12px', fontSize:'12px', fontWeight:'700', display:'inline-block' }}>{m.funcao}</span>
@@ -741,7 +770,7 @@ export const DashboardCoord = () => {
                         <div className="aprov-field-item"><span className="aprov-field-label">E-MAIL</span><span className="aprov-field-val">{candidato.email}</span></div>
                         <div className="aprov-field-item"><span className="aprov-field-label">ESCOLARIDADE</span><span className="aprov-field-val">{candidato.escolaridade}</span></div>
                         <div className="aprov-field-item"><span className="aprov-field-label">CURSO</span><span className="aprov-field-val">{candidato.cursoFormacao}</span></div>
-                        <div className="aprov-field-item" style={{ gridColumn:'1/-1' }}><span className="aprov-field-label">MATÉRIAS</span><span className="aprov-field-val">{candidato.materias}</span></div>
+                        <div className="aprov-field-item" style={{ gridColumn:'1/-1' }}><span className="aprov-field-label">EXPERIÊNCIA</span><span className="aprov-field-val">{candidato.experienciaProfissional}</span></div>
                       </div>
                     </div>
                   </div>
@@ -788,13 +817,28 @@ export const DashboardCoord = () => {
           </div>
         )}
 
-        {/* ══ PERFIL ══ */}
+        {/* ══ PERFIL (FOTO DE PERFIL ADICIONADA) ══ */}
         {activeTab === 'perfil' && (
           <div className="panel active">
             <div className="page-header"><div><h1 className="page-title">Meu Perfil</h1><p className="page-sub">Atualize suas informações.</p></div></div>
             <div className="card">
               <div style={{ display:'flex', alignItems:'center', gap:'20px', padding:'20px 24px', background:'var(--gray-50)', borderBottom:'1px solid var(--gray-100)' }}>
-                <div style={{ width:'72px', height:'72px', borderRadius:'50%', background:'var(--blue-dark)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'26px', fontWeight:'700', color:'#fff' }}>{iniciais}</div>
+                
+                {/* Zona de Upload da Imagem */}
+                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <label htmlFor="perfil-foto-input" style={{ cursor: 'pointer' }}>
+                    <div style={{ width:'72px', height:'72px', borderRadius:'50%', background:'var(--blue-dark)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'26px', fontWeight:'700', color:'#fff', overflow: 'hidden', border: '2px solid #e2e8f0' }}>
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="Foto de perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        iniciais
+                      )}
+                    </div>
+                  </label>
+                  <input type="file" id="perfil-foto-input" accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
+                  <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: '500', marginTop: '6px', cursor: 'pointer' }}>Alterar foto</span>
+                </div>
+
                 <div><div style={{ fontWeight:'700', fontSize:'16px' }}>{perfilFormData.nome||nomeLogado}</div><div style={{ fontSize:'13px', color:'var(--gray-500)', marginTop:'3px' }}>{perfilFormData.email}</div></div>
               </div>
               <div style={{ padding:'28px 24px' }}>
@@ -832,7 +876,7 @@ export const DashboardCoord = () => {
                     <div style={{ fontSize:'13px', color:'#1e40af', lineHeight:'1.7' }}>
                       1. Clique em <strong>"Gerar QR Code"</strong> ao encerrar a prova.&nbsp;·&nbsp;
                       2. Exiba o QR Code na saída da sala.&nbsp;·&nbsp;
-                      3. Cada ledor/fiscal escaneia com o celular no painel <strong>"Bater Ponto → Saída"</strong>.&nbsp;·&nbsp;
+                      3. Each ledor/fiscal escaneia com o celular no painel <strong>"Bater Ponto → Saída"</strong>.&nbsp;·&nbsp;
                       4. O QR expira em <strong>30 minutos</strong>.
                     </div>
                   </div>
