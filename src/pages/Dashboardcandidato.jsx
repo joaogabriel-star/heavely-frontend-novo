@@ -59,7 +59,9 @@ export const DashboardCandidato = () => {
   const formatarHora = (dataString) => {
     if (!dataString) return '--:--';
     try {
-      return new Date(dataString).toLocaleTimeString('pt-BR', {
+      // Adiciona o Z se não existir, para forçar a conversão de fuso horário
+      const dataCorrigida = dataString.endsWith('Z') ? dataString : dataString + 'Z';
+      return new Date(dataCorrigida).toLocaleTimeString('pt-BR', {
         hour: '2-digit', minute: '2-digit'
       });
     } catch { return '--:--'; }
@@ -92,7 +94,7 @@ export const DashboardCandidato = () => {
 
       dadosEventos.forEach(e => {
         if (e.statusEvento !== 'ATIVO') return;
-        const dataDaProva = new Date(e.dataProva);
+        const dataDaProva = new Date(e.dataProva.endsWith('Z') ? e.dataProva : e.dataProva + 'Z');
         if (dataDaProva <= agora) return;
 
         // Vagas cadastradas pelo coordenador
@@ -186,7 +188,7 @@ export const DashboardCandidato = () => {
         let dataPura      = null;
 
         if (evento?.dataProva) {
-          const d = new Date(evento.dataProva);
+          const d = new Date(evento.dataProva.endsWith('Z') ? evento.dataProva : evento.dataProva + 'Z');
           dataPura = d;
           if (!isNaN(d.getTime())) {
             dataFormatada = `${d.getDate()} de ${d.toLocaleDateString('pt-BR', { month: 'long' })}, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
@@ -215,8 +217,6 @@ export const DashboardCandidato = () => {
           historico.push(provaEstruturada);
         } else if (checkIn) {
           pendentes.push(provaEstruturada);
-        } else if (!eventoJaPassou) {
-          pendentes.push(provaEstruturada);
 
           // RESTAURA estado do ponto se já bateu entrada hoje
           if (checkIn && dataPura && ehHoje(dataPura)) {
@@ -227,6 +227,8 @@ export const DashboardCandidato = () => {
                 status: '✅ Entrada registrada (restaurada do banco)',
               });
             }
+          }else if (!eventoJaPassou) {
+          pendentes.push(provaEstruturada);
           }
         }
       });
@@ -268,15 +270,17 @@ export const DashboardCandidato = () => {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
   // ─── 10. ID DO EVENTO DE HOJE ────────────────────────────────
-  const provaDeHoje = minhasCandidaturas.find(c => {
-    return c.dataPura && ehHoje(c.dataPura) && c.status === 'Confirmado';
-  });
+  // 1º: Procura se tem ponto aberto (bateu entrada, mas não bateu saída)
+  const provaEmAndamento = minhasCandidaturas.find(c => c.entrada !== '--:--' && c.saida === '--:--');
+  
+  // 2º: Se não tem ponto em andamento, procura prova de hoje
+  const provaDeHoje = minhasCandidaturas.find(c => c.dataPura && ehHoje(c.dataPura));
 
-  const idEventoHoje = provaDeHoje?.id || null;
+  const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
 
   // ─── 11. BATER PONTO ─────────────────────────────────────────
   const handleRegistrarPonto = async () => {
-    if (!idEventoHoje) {
+    if (!idProvaAtiva) {
       const primeiraConfirmada = minhasCandidaturas.find(c => c.status === 'Confirmado');
       if (!primeiraConfirmada) {
         alert('Você não possui nenhuma prova confirmada para hoje.');
@@ -284,7 +288,7 @@ export const DashboardCandidato = () => {
       }
     }
 
-    const idParaUsar = idEventoHoje || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
+    const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
 
     try {
       if (statusPonto === 'entrada') {
@@ -310,7 +314,7 @@ export const DashboardCandidato = () => {
   };
 
   const confirmarScaneamentoQRCode = async () => {
-    const idParaUsar = idEventoHoje || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
+    const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
 
     try {
       await api.put(`/alocacoes/${idParaUsar}/checkout`);
@@ -893,7 +897,7 @@ export const DashboardCandidato = () => {
             </div>
 
             {/* Aviso se não tem prova hoje */}
-            {!idEventoHoje && minhasCandidaturas.length > 0 && (
+            {!idProvaAtiva && minhasCandidaturas.length > 0 && (
               <div style={{ background: '#fffbeb', border: '1px solid #fde047', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', fontSize: '13px', color: '#92400e' }}>
                 ⚠️ Você não tem prova agendada para hoje. O botão usará sua candidatura mais recente para fins de teste.
               </div>
