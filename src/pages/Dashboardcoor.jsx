@@ -92,6 +92,7 @@ export const DashboardCoord = () => {
             day: '2-digit', month: '2-digit',
             year: 'numeric', hour: '2-digit', minute: '2-digit'
           }),
+          dataPura: dataProva.toISOString(),
           status: e.statusEvento === 'CANCELADO' ? 'Cancelado'
                 : passou                         ? 'Concluído'
                 :                                  'Agendado',
@@ -310,24 +311,44 @@ export const DashboardCoord = () => {
   const abrirModalEdicao = () => {
     if (!eventoEmDetalhe) return;
     try {
-      const [dataPart, horaPart] = eventoEmDetalhe.data.split(', ');
-      const [dia, mes, ano]      = dataPart.split('/');
-      setEditMode(true); setIdEventoEditando(eventoEmDetalhe.id);
-      setEventoFormData({ nome: eventoEmDetalhe.titulo, serie: eventoEmDetalhe.serie || '',
-        data: `${ano}-${mes}-${dia}`, horario: horaPart, duracao: '4',
-        vagas: eventoEmDetalhe.vagasTotais.toString(), valor: eventoEmDetalhe.valor, tipoFuncao: 'Ambos', observacoes: '' });
+      // Lê a dataPura que acabamos de criar, garantindo precisão matemática
+      const d = new Date(eventoEmDetalhe.dataPura);
+      const ano = d.getFullYear();
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const dia = String(d.getDate()).padStart(2, '0');
+      const hora = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+
+      setEditMode(true); 
+      setIdEventoEditando(eventoEmDetalhe.id);
+      
+      setEventoFormData({ 
+        nome: eventoEmDetalhe.titulo, 
+        serie: eventoEmDetalhe.serie || '',
+        data: `${ano}-${mes}-${dia}`, 
+        horario: `${hora}:${min}`, // O campo de hora agora recebe o valor perfeito!
+        duracao: '4',
+        vagas: eventoEmDetalhe.vagasTotais.toString(), 
+        valor: eventoEmDetalhe.valor, 
+        tipoFuncao: 'Ambos', 
+        observacoes: '' 
+      });
       setIsModalOpen(true);
-    } catch (e) { console.error("Erro ao converter data:", e); setEditMode(true); setIdEventoEditando(eventoEmDetalhe.id); setIsModalOpen(true); }
+    } catch (e) { 
+      console.error("Erro ao abrir edição:", e); 
+      setEditMode(true); 
+      setIdEventoEditando(eventoEmDetalhe.id); 
+      setIsModalOpen(true); 
+    }
   };
 
   // ── EDICAO CORRIGIDA (SEM TIMEOUT DE 3 HORAS) ──────────────────────
-  const handleSalvarEdicao = async (e) => {
+const handleSalvarEdicao = async (e) => {
     e.preventDefault();
     try {
       const [ano, mes, dia] = eventoFormData.data.split('-');
       const [hora, min]     = eventoFormData.horario.split(':');
       
-      // Enviamos a string limpa sem fuso forçado, permitindo que o C# processe Brasília perfeitamente
       const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00`;
       const duracao  = parseInt(eventoFormData.duracao) || 1;
       const horaFim  = parseInt(hora) + duracao;
@@ -345,11 +366,17 @@ export const DashboardCoord = () => {
       };
       
       await api.put(`/eventos/${idEventoEditando}`, dto);
-      const dataFormatadaPtBr = `${dia}/${mes}/${ano}, ${hora}:${min}`;
-      setEventos(prev => prev.map(ev => ev.id === idEventoEditando ? { ...ev, titulo: dto.TituloProva, data: dataFormatadaPtBr, valor: `${dto.ValorHora}` } : ev));
+      
+      // O SEGREDO ESTÁ AQUI: Atualiza os dados com o servidor para sincronizar os relógios!
+      await carregarDadosIniciais();
+      
       setIsModalOpen(false);
+      setEventoEmDetalhe(null); // Fecha a tela de detalhes para mostrar a lista atualizada
       alert('✅ Evento atualizado com sucesso!');
-    } catch (error) { console.error("Erro ao salvar edição:", error); alert("Erro ao editar."); }
+    } catch (error) { 
+      console.error("Erro ao salvar edição:", error); 
+      alert("Erro ao editar."); 
+    }
   };
 
   const handleCancelarInscricao = async (inscrito) => {
