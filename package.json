@@ -8,6 +8,7 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@yudiel/react-qr-scanner": "^2.6.0",
     "axios": "^1.16.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.5",
