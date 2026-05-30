@@ -371,7 +371,9 @@
 .mobile-cards-container {
   display: none !important;
 }
-
+.desktop-table {
+  display: table !important;
+}
 
 /* ══════════════════════════════════════════════════════════
    MEDIA QUERY — MOBILE (≤ 768px)

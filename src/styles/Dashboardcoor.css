@@ -734,7 +734,6 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
 
   /* Tabela principal de eventos: scroll, não some */
   .tbl-wrap table {
-    display: table !important;
     width: 100% !important;
     min-width: 0 !important;   /* sem min-width: permite colapso */
     font-size: 12px !important;
