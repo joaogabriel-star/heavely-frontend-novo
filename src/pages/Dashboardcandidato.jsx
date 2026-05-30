@@ -118,10 +118,12 @@ export const DashboardCandidato = () => {
 
         if (papelConcorrencia === 'Ledor') {
             vagasTotaisParaMim = vagasLedor;
-            vagasDisponiveisParaMim = Math.max(0, e.vagasLedorDisponiveis !== undefined ? e.vagasLedorDisponiveis : vagasLedor);
+            // Usa as vagas disponíveis informadas pelo backend (ou cai para o total se for nulo)
+            vagasDisponiveisParaMim = Math.max(0, e.vagasLedorDisponiveis !== undefined && e.vagasLedorDisponiveis !== null ? e.vagasLedorDisponiveis : vagasLedor);
         } else {
             vagasTotaisParaMim = vagasFiscal;
-            vagasDisponiveisParaMim = Math.max(0, e.vagasFiscalDisponiveis !== undefined ? e.vagasFiscalDisponiveis : vagasFiscal);
+            // Usa as vagas disponíveis informadas pelo backend (ou cai para o total se for nulo)
+            vagasDisponiveisParaMim = Math.max(0, e.vagasFiscalDisponiveis !== undefined && e.vagasFiscalDisponiveis !== null ? e.vagasFiscalDisponiveis : vagasFiscal);
         }
 
         const vagasPreenchidasParaMim = vagasTotaisParaMim - vagasDisponiveisParaMim;
@@ -136,7 +138,8 @@ export const DashboardCandidato = () => {
         const titulo = e.nomeProva || e.tituloProva || 'Sem título';
 
         const provaFormatada = {
-          id: e.idEvento, titulo,
+          id: e.idEvento, 
+          titulo,
           // GUARDA A INFORMAÇÃO SE ELE VAI COMO LEDOR OU FISCAL NESTA PROVA ESPECÍFICA
           funcaoInscricao: papelConcorrencia, 
           detalhes: `Vaga para: ${papelConcorrencia} · ${e.serie || 'HIS'}`,
