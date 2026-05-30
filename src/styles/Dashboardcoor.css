@@ -858,3 +858,178 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
   .modal { max-width: 560px; }
   .aprov-fields { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ══════════════════════════════════════════════════════════
+   CORREÇÃO MOBILE — Cole ao final do Dashboardcoor.css
+   Resolve:
+   1. "Equipe que Aplicou" no detalhe Concluído
+   2. Tabela de eventos no Dashboard
+══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+  /* ══════════════════════════════════════════════════════
+     1. EQUIPE QUE APLICOU — converte grid → cards mobile
+  ══════════════════════════════════════════════════════ */
+
+  /* Esconde a linha de cabeçalho (MEMBRO / FUNÇÃO / SALA...) */
+  .equipe-hd {
+    display: none !important;
+  }
+
+  /* Cada linha vira um card empilhado */
+  .equipe-row {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    gap: 0 !important;
+    padding: 14px 16px !important;
+    background: #f8f9fb !important;
+    border-radius: 8px !important;
+    margin: 8px 12px !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Linha de topo: nome + email + badge função */
+  .equipe-row-top {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  /* Sala (se houver) */
+  .equipe-row-sala {
+    font-size: 12.5px !important;
+    color: #374151 !important;
+    margin-bottom: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  .equipe-row-sala::before {
+    content: '🏠';
+    font-size: 12px;
+  }
+
+  /* Linha de horários: entrada + saída lado a lado */
+  .equipe-row-horarios {
+    display: flex !important;
+    gap: 20px !important;
+  }
+
+  .equipe-row-horario-item {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .equipe-row-horario-label {
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    color: #9aa3b2 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+  }
+
+  .equipe-row-horario-val {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     2. TABELA DE EVENTOS — torna scroll horizontal
+        (funciona independente do CSS de display:none)
+  ══════════════════════════════════════════════════════ */
+
+  /* Wrapper com scroll */
+  .tbl-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 0 !important;
+    /* Cancela qualquer display:none que possa ter */
+  }
+
+  /* Garante que a tabela se estenda e não quebre textos */
+  .tbl-wrap table {
+    display: table !important; /* anula possível display:none */
+    min-width: 520px !important;
+    font-size: 12.5px !important;
+  }
+
+  .tbl-wrap table thead th {
+    padding: 9px 12px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
+
+  .tbl-wrap table tbody td {
+    padding: 10px 12px !important;
+    font-size: 12.5px !important;
+  }
+
+  /* Nome do evento: pode quebrar linha normalmente */
+  .tbl-wrap table tbody td strong {
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Barra de progresso: menor no mobile */
+  .tbl-wrap table tbody td .prog-bar-wrap {
+    width: 70px !important;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     3. DETALHES EVENTO: header e botões empilham no mobile
+  ══════════════════════════════════════════════════════ */
+
+  /* Header do detalhe (título + botões) */
+  .det-ev-header {
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  .det-ev-actions {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .det-ev-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Meta do evento (data / série / valor) */
+  .det-ev-meta {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     4. CANCELAMENTOS — chips de motivo ajustam no mobile
+  ══════════════════════════════════════════════════════ */
+
+  .cancel-row-wrap {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .cancel-legenda {
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     5. SALA DESIGNADA — input full-width no mobile
+  ══════════════════════════════════════════════════════ */
+
+  .sala-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+} /* fim @media 768px */
