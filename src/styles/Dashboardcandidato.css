@@ -7,8 +7,6 @@
   color: var(--gray-900);
 }
 
-/* ══ LAYOUT EMPILHADO DOS CARDS ══ */
-/* Esta classe força os cards a ficarem um embaixo do outro, ocupando a tela toda */
 /* ══ LAYOUT HORIZONTAL DOS CARDS ══ */
 .stats-candidato {
   display: grid;
@@ -332,68 +330,89 @@
   font-weight: 700;
 }
 
-/* ══════════════════════════════════════════
-   RESPONSIVIDADE CELULAR (ESTILO APP NATIVO)
-══════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════
+   CONTROLE RESPONSIVO GERAL E TABELAS/CARDS
+════════════════════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════════════════════
-   RESPONSIVIDADE CELULAR (ESTILO APP) — CANDIDATO
-   Cole este bloco ao FINAL do Dashboardcandidato.css
-══════════════════════════════════════════════════════════ */
-
-/* Bottom nav: escondido no desktop */
+/* PC: Esconde nav inferior e os cards mobile por padrão */
 .bottom-nav {
   display: none;
 }
- 
+.mobile-cards-container {
+  display: none !important;
+}
+.desktop-table {
+  display: table !important;
+}
+
 /* ══════════════════════════════════════════════════════════
    MEDIA QUERY — MOBILE (≤ 768px)
 ══════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
- 
+
+  /* ── ALTERAÇÃO PRINCIPAL: TABELAS VS CARDS ── */
+  .desktop-table {
+    display: none !important;
+  }
+  
+  .mobile-cards-container {
+    display: flex !important;
+    flex-direction: column;
+    gap: 16px;
+    padding: 4px 0;
+  }
+  
+  /* Remove a barra de rolagem horizontal desnecessária e os fundos das tabelas */
+  .tbl-wrap { 
+    padding: 0px !important; 
+    overflow-x: hidden !important; 
+    border: none !important;
+    background: transparent !important;
+  }
+  
   /* ── ROOT ────────────────────────────────────────────── */
   .dash-candidato-container {
     min-height: 100vh;
     background: #f1f5f9;
     padding-bottom: 70px; /* espaço para bottom nav */
   }
- 
+  
   /* ── NAVBAR DESKTOP → SIMPLIFICA ────────────────────── */
   .nav {
     padding: 10px 14px;
     background: #0B1A4A;
   }
- 
+  
   /* Esconde texto do brand no mobile */
   .nav-brand > span:not(.his-mark) {
     display: none;
   }
- 
+  
   /* Esconde botões Provas / Ganhos da navbar */
   .nav-btn {
     display: none;
   }
- 
+  
   /* Esconde separador e info de texto do avatar */
   .nav-sep,
   .nav-user-info {
     display: none;
   }
- 
+  
   .nav-brand       { gap: 8px; }
   .nav-brand-icon  { width: 30px; height: 30px; border-radius: 7px; }
   .his-mark        { font-size: 12px; padding: 2px 6px; border-radius: 4px; }
   .avatar          { width: 34px; height: 34px; font-size: 13px; }
- 
+  
   /* ── TABS BAR → ESCONDE NO MOBILE ────────────────────── */
   .tabs-bar {
     display: none;
   }
- 
+  
   /* ── PAGE / PANEL ────────────────────────────────────── */
   .page  { padding: 14px; }
   .panel { width: 100%; }
- 
+  
   /* ── PAGE HEADER ─────────────────────────────────────── */
   .page-header {
     flex-direction: column;
@@ -401,10 +420,10 @@
     gap: 12px;
     margin-bottom: 16px;
   }
- 
+  
   .page-title { font-size: 20px; }
   .page-sub   { font-size: 13px; margin-bottom: 0; }
- 
+  
   /* ── STATS GRID: 3 colunas no mobile ─────────────────── */
   .stats-candidato,
   .stats {
@@ -413,7 +432,7 @@
     gap: 10px !important;
     margin-bottom: 16px !important;
   }
- 
+  
   .stat {
     padding: 12px;
     border-radius: 12px;
@@ -421,16 +440,16 @@
     gap: 6px;
     align-items: flex-start;
   }
- 
+  
   .stat-ico  { width: 34px; height: 34px; font-size: 16px; border-radius: 8px; }
   .stat-lbl  { font-size: 10.5px; line-height: 1.3; }
   .stat-val  { font-size: 26px; }
- 
+  
   /* ── CARD ────────────────────────────────────────────── */
   .card       { border-radius: 12px; margin-bottom: 12px; }
   .card-head  { padding: 14px 16px; }
   .card-title { font-size: 15px; }
- 
+  
   /* ── SUB-TABS ────────────────────────────────────────── */
   .sub-tabs {
     padding: 0 14px;
@@ -442,20 +461,7 @@
   }
   .sub-tabs::-webkit-scrollbar { display: none; }
   .sub-tab { padding: 10px 14px; font-size: 13px; white-space: nowrap; }
- 
-  /* ── TABELA DESKTOP → ESCONDE ────────────────────────── */
-  .tbl-wrap { 
-    padding: 12px !important; 
-    overflow-x: auto !important; /* Cria a barra de rolagem lateral no celular */
-    -webkit-overflow-scrolling: touch; /* Deixa o arrastar do dedo bem suave */
-  }
-  
-  .tbl-wrap table { 
-    display: table !important; /* Cancela a invisibilidade */
-    width: 100% !important; 
-    min-width: 550px !important; /* Impede que o texto fique espremido */
-  }
- 
+
   /* ════════════════════════════════════════════════════════
      PROVAS DISPONÍVEIS — Cards mobile
   ════════════════════════════════════════════════════════ */
@@ -468,7 +474,7 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
   .prova-mobile-card:last-child { margin-bottom: 0; }
- 
+  
   .prova-mobile-top {
     display: flex;
     justify-content: space-between;
@@ -476,20 +482,20 @@
     margin-bottom: 8px;
     gap: 8px;
   }
- 
+  
   .prova-mobile-nome {
     font-size: 14px;
     font-weight: 700;
     color: #0f172a;
     flex: 1;
   }
- 
+  
   .prova-mobile-sub {
     font-size: 12px;
     color: #64748b;
     margin-top: 2px;
   }
- 
+  
   .prova-mobile-data {
     font-size: 12px;
     color: #64748b;
@@ -498,21 +504,21 @@
     gap: 6px;
     margin-bottom: 10px;
   }
- 
+  
   .prova-mobile-bottom {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
   }
- 
+  
   .prova-mobile-progress {
     display: flex;
     align-items: center;
     gap: 8px;
     flex: 1;
   }
- 
+  
   .prova-mobile-bar {
     flex: 1;
     height: 5px;
@@ -520,19 +526,19 @@
     border-radius: 4px;
     overflow: hidden;
   }
- 
+  
   .prova-mobile-bar-fill {
     height: 100%;
     background: #3b82f6;
     border-radius: 4px;
   }
- 
+  
   .prova-mobile-vagas {
     font-size: 12px;
     color: #64748b;
     white-space: nowrap;
   }
- 
+  
   .btn-candidatar-mobile {
     background: none;
     border: none;
@@ -544,13 +550,13 @@
     padding: 0;
     font-family: inherit;
   }
- 
+  
   /* Pills de status */
   .status-pill       { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
   .status-aberta     { background: #d1fae5; color: #065f46; }
   .status-reserva    { background: #fef3c7; color: #92400e; }
   .status-confirmado { background: #d1fae5; color: #065f46; }
- 
+  
   /* ════════════════════════════════════════════════════════
      MINHAS CANDIDATURAS — Cards com borda lateral colorida
   ════════════════════════════════════════════════════════ */
@@ -563,11 +569,11 @@
     display: flex;
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
- 
+  
   .cand-stripe         { width: 4px; flex-shrink: 0; }
   .cand-stripe-verde   { background: #10b981; }
   .cand-stripe-amber   { background: #f59e0b; }
- 
+  
   .cand-body-mobile {
     flex: 1;
     padding: 14px;
@@ -575,13 +581,13 @@
     flex-direction: column;
     gap: 10px;
   }
- 
+  
   .cand-nome-mobile {
     font-size: 14px;
     font-weight: 700;
     color: #0f172a;
   }
- 
+  
   .cand-meta-mobile {
     display: flex;
     flex-wrap: wrap;
@@ -590,13 +596,13 @@
     font-size: 12px;
     color: #64748b;
   }
- 
+  
   .cand-actions-mobile {
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
- 
+  
   .btn-dia-prova-mobile {
     width: 100%;
     padding: 10px;
@@ -614,7 +620,7 @@
     justify-content: center;
     gap: 6px;
   }
- 
+  
   .btn-cancelar-mobile {
     width: 100%;
     padding: 8px;
@@ -628,7 +634,7 @@
     cursor: pointer;
     text-align: center;
   }
- 
+  
   /* ════════════════════════════════════════════════════════
      PROVAS APLICADAS — Cards mobile
   ════════════════════════════════════════════════════════ */
@@ -640,7 +646,7 @@
     margin-bottom: 10px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
- 
+  
   .aplicada-top {
     display: flex;
     justify-content: space-between;
@@ -648,10 +654,10 @@
     margin-bottom: 10px;
     gap: 8px;
   }
- 
+  
   .aplicada-nome { font-size: 14px; font-weight: 700; color: #0f172a; }
   .aplicada-sub  { font-size: 12px; color: #64748b; margin-top: 2px; }
- 
+  
   .aplicada-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -661,10 +667,10 @@
     padding: 10px;
     margin-bottom: 10px;
   }
- 
+  
   .aplicada-field-label { font-size: 10px; font-weight: 700; color: #9aa3b2; text-transform: uppercase; margin-bottom: 2px; }
   .aplicada-field-val   { font-size: 14px; font-weight: 700; }
- 
+  
   .aplicada-footer {
     display: flex;
     justify-content: space-between;
@@ -672,7 +678,7 @@
     padding-top: 10px;
     border-top: 1px solid #f1f5f9;
   }
- 
+  
   /* Total de horas + valor na parte inferior */
   .aplicadas-totais {
     background: #f8f9fb;
@@ -688,7 +694,7 @@
   }
   .aplicadas-totais strong { font-weight: 700; color: #0f172a; }
   .aplicadas-totais .total-valor { font-size: 16px; font-weight: 700; color: #16a34a; }
- 
+  
   /* ════════════════════════════════════════════════════════
      CÁLCULO DE GANHOS — Layout mobile
   ════════════════════════════════════════════════════════ */
@@ -698,14 +704,14 @@
     gap: 12px;
     padding: 14px;
   }
- 
+  
   .ganho-card-mobile {
     background: #f8f9fb;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
     padding: 16px;
   }
- 
+  
   .ganho-label-mobile {
     font-size: 11px;
     font-weight: 700;
@@ -714,16 +720,16 @@
     letter-spacing: 0.06em;
     margin-bottom: 6px;
   }
- 
+  
   .ganho-value-mobile       { font-size: 28px; font-weight: 700; }
   .ganho-value-verde        { color: #16a34a; }
   .ganho-detail-mobile      { font-size: 12px; color: #64748b; margin-top: 4px; }
- 
+  
   .ganhos-detail-table      { width: 100%; border-collapse: collapse; margin-top: 10px; }
   .ganhos-detail-table td   { padding: 8px 0; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
   .ganhos-detail-table tr:last-child td { border-bottom: none; font-weight: 700; }
   .ganhos-detail-table td:last-child    { text-align: right; }
- 
+  
   /* ════════════════════════════════════════════════════════
      BATER PONTO — Layout mobile
   ════════════════════════════════════════════════════════ */
@@ -736,7 +742,7 @@
     margin-bottom: 16px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
- 
+  
   .ponto-relogio {
     font-family: 'DM Mono', monospace;
     font-size: 42px;
@@ -746,20 +752,20 @@
     line-height: 1;
     margin-bottom: 6px;
   }
- 
+  
   .ponto-data-label {
     font-size: 13px;
     color: #64748b;
     margin-bottom: 24px;
   }
- 
+  
   .ponto-tipo-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-bottom: 16px;
   }
- 
+  
   .ponto-tipo-btn {
     padding: 16px 10px;
     border-radius: 10px;
@@ -774,10 +780,10 @@
     transition: all 0.2s;
     -webkit-tap-highlight-color: transparent;
   }
- 
+  
   .ponto-tipo-btn.ativo-entrada { border-color: #10b981; background: #f0fdf4; }
   .ponto-tipo-btn.ativo-saida   { border-color: #f59e0b; background: #fffbeb; }
- 
+  
   .ponto-tipo-icon  { font-size: 22px; }
   .ponto-tipo-label {
     font-size: 11px;
@@ -788,7 +794,7 @@
     line-height: 1.3;
     text-align: center;
   }
- 
+  
   .ponto-main-btn-mobile {
     width: 100%;
     padding: 15px;
@@ -807,16 +813,16 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
- 
+  
   .ponto-registros-card {
     background: #fff;
     border-radius: 12px;
     border: 1px solid #e5e7eb;
     padding: 16px;
   }
- 
+  
   .ponto-registros-title { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 12px; }
- 
+  
   .ponto-registro-item {
     display: flex;
     justify-content: space-between;
@@ -833,7 +839,7 @@
     font-size: 13px;
     font-style: italic;
   }
- 
+  
   /* QR Scanner */
   .qr-scanner-box {
     background: #111827;
@@ -855,12 +861,12 @@
     animation: scanLine 2s linear infinite;
   }
   @keyframes scanLine { 0% { top: 10%; } 100% { top: 90%; } }
- 
+  
   /* ── MODAL → BOTTOM SHEET ─────────────────────────────── */
   .overlay {
     align-items: flex-end !important;
   }
- 
+  
   .modal {
     width: 100% !important;
     max-width: 100% !important;
@@ -869,7 +875,7 @@
     max-height: 90vh;
     overflow-y: auto;
   }
- 
+  
   /* Indicador de arrasto */
   .modal::before {
     content: '';
@@ -880,19 +886,19 @@
     border-radius: 2px;
     margin: 0 auto 16px;
   }
- 
+  
   .modal-title { font-size: 18px; }
- 
+  
   .modal-grid {
     grid-template-columns: 1fr !important;
     gap: 12px;
   }
- 
+  
   .modal-footer {
     flex-direction: column;
     gap: 10px;
   }
- 
+  
   .modal-footer .btn-outline,
   .modal-footer .btn-primary {
     width: 100%;
@@ -901,12 +907,12 @@
     text-align: center;
     justify-content: center;
   }
- 
+  
   /* ── PERFIL MOBILE ────────────────────────────────────── */
   .field-grp               { margin-bottom: 14px; }
   .field-grp label         { font-size: 11px; }
   .field-grp input         { font-size: 14px; padding: 11px 12px; }
- 
+  
   /* Grid de 2 colunas → 1 coluna no mobile */
   div[style*="grid-template-columns: 1fr 1fr"] {
     grid-template-columns: 1fr !important;
@@ -914,7 +920,7 @@
   div[style*="gridTemplateColumns: '1fr 1fr'"] {
     grid-template-columns: 1fr !important;
   }
- 
+  
   /* ════════════════════════════════════════════════════════
      BOTTOM NAVIGATION — Barra fixa no rodapé
   ════════════════════════════════════════════════════════ */
@@ -930,7 +936,7 @@
     z-index: 100;
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
   }
- 
+  
   .bottom-nav-item {
     flex: 1;
     display: flex;
@@ -942,24 +948,24 @@
     position: relative;
     -webkit-tap-highlight-color: transparent;
   }
- 
+  
   .bottom-nav-item svg {
     width: 22px;
     height: 22px;
     stroke: #94a3b8;
     transition: stroke 0.15s;
   }
- 
+  
   .bottom-nav-item span {
     font-size: 10px;
     font-weight: 600;
     color: #94a3b8;
     transition: color 0.15s;
   }
- 
+  
   .bottom-nav-item.active svg  { stroke: #2563eb; }
   .bottom-nav-item.active span { color: #2563eb; }
- 
+  
   .bottom-nav-badge {
     position: absolute;
     top: 0;
@@ -973,40 +979,17 @@
     min-width: 16px;
     text-align: center;
   }
- 
+  
 } /* fim @media 768px */
- 
+
 /* ══════════════════════════════════════════════════════════
    TABLET (769px – 1024px)
 ══════════════════════════════════════════════════════════ */
 @media (min-width: 769px) and (max-width: 1024px) {
- 
   .stats-candidato,
   .stats {
     grid-template-columns: repeat(3, 1fr);
   }
- 
   .page  { padding: 20px; }
   .modal { max-width: 560px; }
-}
-
-/* Esconde os cards de celular quando estiver no PC */
-.mobile-cards-container {
-  display: none !important;
-}
-.desktop-table {
-  display: table;
-}
-
-/* Quando for tela de celular, esconde a tabela e mostra os cards */
-@media (max-width: 768px) {
-  .mobile-cards-container {
-    display: flex !important;
-    flex-direction: column;
-    gap: 12px;
-    padding: 4px 0;
-  }
-  .desktop-table {
-    display: none !important;
-  }
 }
