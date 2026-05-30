@@ -1,4 +1,34 @@
 /* src/styles/DashboardCandidato.css */
+/* ════════════════════════════════════════════════════════
+   1. REGRAS DE OURO DE RESPONSIVIDADE (NÃO APAGAR)
+════════════════════════════════════════════════════════ */
+
+/* No PC (Telas grandes): Esconde os cards de telemóvel */
+.mobile-cards-container {
+  display: none !important;
+}
+.desktop-table {
+  display: table !important;
+  width: 100%;
+}
+
+/* No Telemóvel (Telas pequenas): Esconde a tabela e mostra os cards */
+@media screen and (max-width: 768px) {
+  .desktop-table {
+    display: none !important;
+  }
+  .mobile-cards-container {
+    display: flex !important;
+    flex-direction: column;
+    gap: 16px;
+  }
+  /* Remove a barra de rolagem lateral e bordas da tabela fantasma */
+  .tbl-wrap {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+}
 
 .dash-candidato-container {
   font-family: 'DM Sans', sans-serif;
