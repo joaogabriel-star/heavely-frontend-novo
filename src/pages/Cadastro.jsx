@@ -276,6 +276,14 @@ const handleSubmit = async (e) => {
                           <input type="file" name="nadaconsta" accept=".pdf" onChange={(e) => setArquivoNadaConsta(e.target.files[0])} />
                         </div>
                       </div>
+                      <div>
+                        {arquivoNadaConsta && (
+                          <p style={{ color: '#10b981', fontSize: '12.5px', fontWeight: '600', marginTop: '8px', textAlign: 'center' }}>
+                            ✓ {arquivoNadaConsta.name}
+                          </p>
+                        )}
+                      </div>
+                      
                     </>
                   )}
                 </div>
