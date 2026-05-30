@@ -46,8 +46,8 @@ export const DashboardCandidato = () => {
   });
 
   // ─── 6. PONTO ────────────────────────────────────────────────
-  const [horaAtual,       setHoraAtual]       = useState(new Date());
-  const [statusPonto,     setStatusPonto]     = useState('entrada');
+  const [horaAtual,        setHoraAtual]       = useState(new Date());
+  const [statusPonto,      setStatusPonto]     = useState('entrada');
   const [registrosDeHoje, setRegistrosDeHoje] = useState([]);
   const [scaneando,       setScaneando]       = useState(false);
 
@@ -231,9 +231,9 @@ export const DashboardCandidato = () => {
                 status: '✅ Entrada registrada (restaurada do banco)',
               });
             }
-          }else if (!eventoJaPassou) {
-          pendentes.push(provaEstruturada);
           }
+        }else if (!eventoJaPassou) {
+          pendentes.push(provaEstruturada);
         }
       });
 
@@ -282,7 +282,6 @@ export const DashboardCandidato = () => {
 
   const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
 
-  // ─── 11. BATER PONTO ─────────────────────────────────────────
   // ─── 11. BATER PONTO ─────────────────────────────────────────
   const handleRegistrarPonto = async () => {
     if (!idProvaAtiva) {
@@ -939,39 +938,44 @@ export const DashboardCandidato = () => {
 
               <div style={{ width: '100%', maxWidth: '800px' }}>
                 {scaneando ? (
-  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-      <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Escanear QR Code</h3>
-      <button onClick={() => setScaneando(false)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
-        [ X ] Cancelar
-      </button>
-    </div>
+                  <div
+                    // O e.stopPropagation() vai impedir que cliques aqui ativem o registro indesejado
+                    onClick={(e) => e.stopPropagation()} 
+                    style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', textAlign: 'center' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Escanear QR Code</h3>
+                      <button onClick={() => setScaneando(false)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                        [ X ] Cancelar
+                      </button>
+                    </div>
 
-    {/* CAIXA DA CÂMERA */}
-    <div style={{ maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid #3b82f6' }}>
-      <Scanner
-        onScan={(result) => {
-          // Quando a câmera ler algo, extrai o texto do QR Code
-          if (result && result.length > 0) {
-            const textoLido = result[0].rawValue;
-            
-            // Verifica se é o QR Code oficial da HIS
-            if (textoLido.includes('EVENTO:')) {
-              confirmarScaneamentoQRCode();
-            } else {
-              alert('QR Code inválido! Escaneie o código oficial gerado pelo coordenador.');
-            }
-          }
-        }}
-        onError={(error) => console.log("Erro na câmera:", error?.message)}
-      />
-    </div>
-    
-    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '16px' }}>
-      Aponte a câmera para o QR Code gerado pelo coordenador.
-    </p>
-  </div>
-) : (
+                    {/* CAIXA DA CÂMERA BLINDADA */}
+                    <div style={{ maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid #3b82f6' }}>
+                      <Scanner
+                        onScan={(result) => {
+                          // Verifica se a câmera leu algo
+                          if (result && result.length > 0) {
+                            // Extrai o texto lido com fallback seguro
+                            const textoLido = result[0].rawValue || result[0].text || "";
+                            
+                            // Verifica se é o QR Code oficial da HIS
+                            if (textoLido.includes('EVENTO:')) {
+                              confirmarScaneamentoQRCode();
+                            } else {
+                              console.log("Código ignorado (não é do evento):", textoLido);
+                            }
+                          }
+                        }}
+                        onError={(error) => console.log("Câmera aguardando/Erro:", error?.message)}
+                      />
+                    </div>
+                    
+                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '16px' }}>
+                      Aponte a câmera para o QR Code gerado pelo coordenador.
+                    </p>
+                  </div>
+                ) : (
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Registros de Hoje</h3>
                     {registrosDeHoje.length === 0 ? (
