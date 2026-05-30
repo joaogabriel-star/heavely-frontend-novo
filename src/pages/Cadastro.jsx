@@ -9,6 +9,8 @@ export const Cadastro = () => {
   const [tipoConta, setTipoConta] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [arquivoNadaConsta, setArquivoNadaConsta] = useState(null);
+  const [arquivoDiploma, setArquivoDiploma] = useState(null);
   
   // Estado unificado para todos os campos do formulário
   const [formData, setFormData] = useState({
@@ -198,20 +200,32 @@ const handleSubmit = async (e) => {
               </div>
             </div>
 
-            {/* Upload de Certificado (Aparece SÓ para Ledor) */}
-            {tipoConta === 'Ledor' && (
-              <div className="upload-box mt-20">
-                <label>CERTIFICADO DE LEDOR *</label>
-                <div className="dropzone">
-                  <span className="file-icon">📄</span>
-                  <p>Clique para enviar o certificado</p>
-                  <small>Formatos aceitos: PDF — Max. 5MB</small>
-                  <input type="file" name="certificadoLedor" accept=".pdf" />
-                </div>
-              </div>
-            )}
-          </section>
+{/* Upload de Certificado (Aparece SÓ para Ledor) */}
+{tipoConta === 'Ledor' && (
+  <div className="upload-box mt-20">
+    <label>CERTIFICADO DE LEDOR *</label>
+    <div className="dropzone">
+      <span className="file-icon">📄</span>
+      <p>Clique para enviar o certificado</p>
+      <small>Formatos aceitos: PDF — Max. 5MB</small>
+      
+      {/* 1. ATUALIZADO: Adicionado o onChange para salvar o arquivo no estado */}
+      <input 
+        type="file" 
+        name="certificadoLedor" 
+        accept=".pdf, image/jpeg, image/png" 
+        onChange={(e) => setArquivoDiploma(e.target.files[0])} 
+      />
+    </div>
 
+    {arquivoDiploma && (
+      <p style={{ color: '#10b981', fontSize: '12.5px', fontWeight: '600', marginTop: '8px', textAlign: 'center' }}>
+        ✓ {arquivoDiploma.name}
+      </p>
+    )}
+  </div>
+)}
+</section>
           {/* O restante do formulário só aparece se o usuário já escolheu um tipo de conta */}
           {tipoConta && (
             <>
@@ -259,7 +273,7 @@ const handleSubmit = async (e) => {
                           <span className="file-icon">📄</span>
                           <p>Clique para enviar o nada consta</p>
                           <small>Formatos aceitos: PDF — Max. 5MB</small>
-                          <input type="file" name="nadaconsta" accept=".pdf" />
+                          <input type="file" name="nadaconsta" accept=".pdf" onChange={(e) => setArquivoNadaConsta(e.target.files[0])} />
                         </div>
                       </div>
                     </>

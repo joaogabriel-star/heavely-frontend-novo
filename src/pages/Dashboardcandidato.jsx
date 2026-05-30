@@ -3,6 +3,7 @@ import '../styles/Dashboardcoor.css';
 import '../styles/Dashboardcandidato.css';
 import api, { eventoService } from '../services/api';
 import { LayoutDashboard, UserCheck, Users, FileText, User, FileCheck, Search, Wallet, Clock} from 'lucide-react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 export const DashboardCandidato = () => {
 
@@ -938,22 +939,39 @@ export const DashboardCandidato = () => {
 
               <div style={{ width: '100%', maxWidth: '800px' }}>
                 {scaneando ? (
-                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Escanear QR Code</h3>
-                      <button onClick={() => setScaneando(false)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>[ X ] Cancelar</button>
-                    </div>
-                    <div onClick={confirmarScaneamentoQRCode} style={{ width: '100%', height: '300px', background: '#111827', borderRadius: '8px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
-                      <div style={{ position: 'absolute', color: '#fff', fontSize: '14px', textAlign: 'center', padding: '20px' }}>
-                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>📷</div>
-                        Câmera Ativa<br/>
-                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>Aponte para o QR Code na mesa da coordenação</span>
-                      </div>
-                      <div style={{ position: 'absolute', width: '100%', height: '2px', background: '#ef4444', top: '50%', boxShadow: '0 0 10px #ef4444' }} />
-                    </div>
-                    <p style={{ fontSize: '12px', color: '#64748b', marginTop: '12px', fontWeight: '600' }}>[Modo de Teste: Clique na tela preta para validar]</p>
-                  </div>
-                ) : (
+  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Escanear QR Code</h3>
+      <button onClick={() => setScaneando(false)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+        [ X ] Cancelar
+      </button>
+    </div>
+
+    {/* CAIXA DA CÂMERA */}
+    <div style={{ maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid #3b82f6' }}>
+      <Scanner
+        onScan={(result) => {
+          // Quando a câmera ler algo, extrai o texto do QR Code
+          if (result && result.length > 0) {
+            const textoLido = result[0].rawValue;
+            
+            // Verifica se é o QR Code oficial da HIS
+            if (textoLido.includes('EVENTO:')) {
+              confirmarScaneamentoQRCode();
+            } else {
+              alert('QR Code inválido! Escaneie o código oficial gerado pelo coordenador.');
+            }
+          }
+        }}
+        onError={(error) => console.log("Erro na câmera:", error?.message)}
+      />
+    </div>
+    
+    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '16px' }}>
+      Aponte a câmera para o QR Code gerado pelo coordenador.
+    </p>
+  </div>
+) : (
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Registros de Hoje</h3>
                     {registrosDeHoje.length === 0 ? (
