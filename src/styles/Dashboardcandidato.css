@@ -994,6 +994,9 @@
 .mobile-cards-container {
   display: none;
 }
+.desktop-table {
+  display: table;
+}
 
 /* Quando for tela de celular, esconde a tabela e mostra os cards */
 @media (max-width: 768px) {

@@ -795,7 +795,8 @@ export const DashboardCandidato = () => {
                 </div>
               ) : (
                 <>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  {/* TABELA DESKTOP */}
+                  <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                         <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>PROVA</th>
@@ -836,7 +837,45 @@ export const DashboardCandidato = () => {
                       ))}
                     </tbody>
                   </table>
-                  <div style={{ background: '#f8fafc', padding: '20px 24px', display: 'flex', justifyContent: 'flex-end', gap: '40px', borderTop: '1px solid #e5e7eb' }}>
+
+                  {/* CARDS MOBILE (Aparecem apenas em telas pequenas) */}
+                  <div className="mobile-cards-container">
+                    {provasAplicadas.map(prova => (
+                      <div className="prova-mobile-card" key={prova.id} style={{ marginBottom: '16px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+                        <div className="prova-mobile-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                          <div className="prova-mobile-nome">
+                            <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '15px' }}>{prova.titulo}</div>
+                            <div className="prova-mobile-sub" style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{prova.serie}</div>
+                          </div>
+                          <span style={{ background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>
+                            {prova.funcao}
+                          </span>
+                        </div>
+                        <div className="prova-mobile-data" style={{ fontSize: '13px', color: '#475569', marginBottom: '12px' }}>📅 {prova.data}</div>
+                        
+                        <div className="prova-mobile-bottom" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', background: '#f8fafc', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '13px' }}>
+                            <span>Entrada: <strong style={{ color: '#16a34a' }}>{prova.entrada}</strong></span>
+                            <span>Saída: <strong style={{ color: '#ef4444' }}>{prova.saida}</strong></span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1' }}>
+                            <span style={{ fontSize: '13px', color: '#475569' }}>
+                              Duração: <strong style={{ color: '#0f172a' }}>{prova.horasTrabalhadas > 0 ? `${prova.horasTrabalhadas.toFixed(1)}h` : '--'}</strong>
+                            </span>
+                            <span style={{ fontSize: '15px', fontWeight: '700', color: '#16a34a' }}>
+                              {prova.horasTrabalhadas > 0 ? formatarMoeda(prova.horasTrabalhadas * valorFixoHora) : '--'}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                           <button onClick={() => abrirModalRelato(prova)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}>Relatar Ocorrência</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* RODAPÉ DE TOTAIS */}
+                  <div style={{ background: '#f8fafc', padding: '20px 24px', display: 'flex', justifyContent: 'flex-end', gap: '20px', flexWrap: 'wrap', borderTop: '1px solid #e5e7eb' }}>
                     <div style={{ fontSize: '14px', color: '#475569' }}>Total de horas: <strong style={{ color: '#0f172a' }}>{totalHorasHistorico.toFixed(1)}h</strong></div>
                     <div style={{ fontSize: '14px', color: '#475569' }}>Total a receber: <strong style={{ color: '#16a34a', fontSize: '16px' }}>{formatarMoeda(totalReceberHistorico)}</strong></div>
                   </div>
