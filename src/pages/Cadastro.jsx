@@ -11,6 +11,7 @@ export const Cadastro = () => {
   const [carregando, setCarregando] = useState(false);
   const [arquivoNadaConsta, setArquivoNadaConsta] = useState(null);
   const [arquivoDiploma, setArquivoDiploma] = useState(null);
+  const [salvando, setSalvando] = useState(false);
   
   // Estado unificado para todos os campos do formulário
   const [formData, setFormData] = useState({
@@ -134,6 +135,39 @@ const handleSubmit = async (e) => {
       setCarregando(false);
     }
   };
+
+  const handleCadastro = async (e) => {
+  e.preventDefault();
+  
+  // DETETIVE 1: Vemos se o botão pelo menos disparou a função
+  console.log("1. Botão clicado! Iniciando validação...");
+
+  // (Suas validações de senhas, campos, etc. vêm aqui...)
+
+  // Avisa a tela para mostrar o "Carregando..."
+  setSalvando(true); 
+
+  try {
+    const formData = new FormData();
+    // ... os seus formData.append() aqui ...
+
+    console.log("2. Enviando requisição para a API...");
+    
+    await api.post('/usuarios/cadastro', formData);
+    
+    console.log("3. Sucesso! A API respondeu.");
+    alert('Cadastro realizado com sucesso!');
+    
+    // Redireciona para o login ou limpa a tela...
+    
+  } catch (error) {
+    console.error("ERRO NO CADASTRO:", error);
+    alert('Erro ao criar conta. Verifique o console.');
+  } finally {
+    // Tira o carregando da tela, quer tenha dado certo ou erro
+    setSalvando(false);
+  }
+};
 
   return (
     <div className="cadastro-container">
@@ -390,7 +424,9 @@ const handleSubmit = async (e) => {
                 </div>
 
                 <div className="submit-area mt-40">
-                  <button type="submit" className="btn-primary">Criar minha conta →</button>
+                  <button type="submit" disabled={salvando} className="btn-primary">
+                    {salvando ? 'Criando conta...' : 'Criar minha conta →'}
+                  </button>
                   <p className="login-link">Já tem uma conta? <Link to="/login">Entrar</Link></p>
                 </div>
               </section>
