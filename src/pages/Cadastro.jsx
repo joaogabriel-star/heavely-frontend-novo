@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Cadastro.css';
 import { api } from '../services/api'; // Importamos a instância do Axios
@@ -10,6 +10,20 @@ export const Cadastro = () => {
   const [salvando, setSalvando] = useState(false);
   const [arquivoNadaConsta, setArquivoNadaConsta] = useState(null);
   const [arquivoDiploma, setArquivoDiploma] = useState(null);
+
+  useEffect(() => {
+    const acordarServidor = async () => {
+      try {
+        console.log("Pingando servidor...");
+        await api.get('/usuarios/health'); // Ou a rota exata que você criou
+        console.log("Servidor acordado!");
+      } catch (err) {
+        console.log("Servidor ainda a acordar...");
+      }
+    };
+    
+    acordarServidor();
+  }, []);
   
   const [formData, setFormData] = useState({
     nomeCompleto: '', cpf: '', dataNascimento: '', celular: '', email: '',
@@ -71,6 +85,9 @@ export const Cadastro = () => {
       setSalvando(false);
     }
   };
+
+  
+
 
   return (
     <div className="cadastro-container">
