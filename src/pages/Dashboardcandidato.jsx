@@ -20,7 +20,6 @@ export const DashboardCandidato = () => {
   const [relatoForm,              setRelatoForm]              = useState({ tipo: '', descricao: '' });
 
   // ─── 3. DADOS DO USUÁRIO ─────────────────────────────────────
-  // Puxa o objeto completo do usuário para garantir o perfil correto
   const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}');
   
   const nomeLogado   = usuarioLocal?.nome || localStorage.getItem('nomeUsuario')   || 'João Santos';
@@ -60,7 +59,6 @@ export const DashboardCandidato = () => {
   const formatarHora = (dataString) => {
     if (!dataString) return '--:--';
     try {
-      // Adiciona o Z se não existir, para forçar a conversão de fuso horário
       const dataCorrigida = dataString.endsWith('Z') ? dataString : dataString + 'Z';
       return new Date(dataCorrigida).toLocaleTimeString('pt-BR', {
         hour: '2-digit', minute: '2-digit'
@@ -84,7 +82,7 @@ export const DashboardCandidato = () => {
            data.getFullYear() === hoje.getFullYear();
   };
 
-  // ─── 7. CARREGAR EVENTOS (COM FILTRO INTELIGENTE) ────────────
+  // ─── 7. CARREGAR EVENTOS ─────────────────────────────────────
   const carregarEventos = async () => {
     try {
       const dadosEventos = await eventoService.listarEventos();
@@ -98,32 +96,25 @@ export const DashboardCandidato = () => {
         const dataDaProva = new Date(e.dataProva.endsWith('Z') ? e.dataProva : e.dataProva + 'Z');
         if (dataDaProva <= agora) return;
 
-        // Vagas cadastradas pelo coordenador
         const vagasLedor  = e.totalVagasLedor  ?? e.vagasLedor  ?? 0;
         const vagasFiscal = e.totalVagasFiscal ?? e.vagasFiscal ?? 0;
 
-        // 1. NOVA REGRA DE FILTRO: Fiscal só vê fiscal. Ledor vê ambos.
         if (perfilLogado === 'Fiscal' && vagasFiscal <= 0) return;
         if (perfilLogado === 'Ledor' && vagasLedor <= 0 && vagasFiscal <= 0) return;
 
-        // 2. DEFINE O PAPEL DO CANDIDATO NAQUELA PROVA
-        // Se for Ledor, mas a prova SÓ tem vaga para Fiscal, ele concorre como Fiscal.
         let papelConcorrencia = perfilLogado;
         if (perfilLogado === 'Ledor' && vagasLedor === 0 && vagasFiscal > 0) {
             papelConcorrencia = 'Fiscal';
         }
 
-        // 3. CALCULA AS BARRAS BASEADO NO PAPEL QUE ELE ASSUMIU
         let vagasTotaisParaMim = 0;
         let vagasDisponiveisParaMim = 0;
 
         if (papelConcorrencia === 'Ledor') {
             vagasTotaisParaMim = vagasLedor;
-            // Usa as vagas disponíveis informadas pelo backend (ou cai para o total se for nulo)
             vagasDisponiveisParaMim = Math.max(0, e.vagasLedorDisponiveis !== undefined && e.vagasLedorDisponiveis !== null ? e.vagasLedorDisponiveis : vagasLedor);
         } else {
             vagasTotaisParaMim = vagasFiscal;
-            // Usa as vagas disponíveis informadas pelo backend (ou cai para o total se for nulo)
             vagasDisponiveisParaMim = Math.max(0, e.vagasFiscalDisponiveis !== undefined && e.vagasFiscalDisponiveis !== null ? e.vagasFiscalDisponiveis : vagasFiscal);
         }
 
@@ -141,7 +132,6 @@ export const DashboardCandidato = () => {
         const provaFormatada = {
           id: e.idEvento, 
           titulo,
-          // GUARDA A INFORMAÇÃO SE ELE VAI COMO LEDOR OU FISCAL NESTA PROVA ESPECÍFICA
           funcaoInscricao: papelConcorrencia, 
           detalhes: `Vaga para: ${papelConcorrencia} · ${e.serie || 'HIS'}`,
           data: `${dia} de ${mes}, ${hora}`,
@@ -165,7 +155,7 @@ export const DashboardCandidato = () => {
     }
   };
 
-  // ─── 8. CARREGAR CANDIDATURAS + RESTAURAR ESTADO DO PONTO ────
+  // ─── 8. CARREGAR CANDIDATURAS (BLINDADO) ─────────────────────
   const carregarMinhasCandidaturas = async () => {
     try {
       const [respostaAlocacoes, dadosEventos] = await Promise.all([
@@ -180,12 +170,12 @@ export const DashboardCandidato = () => {
       respostaAlocacoes.data.forEach(alocacao => {
         const idEvento    = alocacao.idEvento    ?? alocacao.id_evento    ?? alocacao.IdEvento;
         const papelEvento = alocacao.papelEvento ?? alocacao.papel_evento ?? alocacao.PapelEvento ?? 'N/A';
+        const statusDB    = alocacao.statusParticipacao || alocacao.StatusParticipacao || 'Confirmado';
 
         const checkIn  = alocacao.checkInTime  || alocacao.CheckInTime  || null;
         const checkOut = alocacao.checkOutTime || alocacao.CheckOutTime || null;
 
         const horas = Number(alocacao.horasTrabalhadas ?? alocacao.HorasTrabalhadas ?? 0);
-
         const evento = dadosEventos.find(ev => Number(ev.idEvento) === Number(idEvento));
 
         let dataFormatada = 'Data não informada';
@@ -199,6 +189,12 @@ export const DashboardCandidato = () => {
           }
         }
 
+        // Descobre o status correto a mostrar (Capturando o "Pago")
+        let statusExibicao = 'Confirmado';
+        if (statusDB.toLowerCase() === 'pago') statusExibicao = 'Pago 💰';
+        else if (checkOut) statusExibicao = 'Concluída';
+        else if (checkIn) statusExibicao = 'Em Andamento';
+
         const provaEstruturada = {
           id:              idEvento,
           titulo:          evento?.nomeProva || evento?.tituloProva || 'Prova sem título',
@@ -206,7 +202,7 @@ export const DashboardCandidato = () => {
           dataPura,
           serie:           evento?.serie || 'HIS',
           funcao:          papelEvento,
-          status:          checkOut ? 'Concluída' : 'Confirmado',
+          status:          statusExibicao,
           sala:            alocacao.salaDesignada || alocacao.SalaDesignada || '',
           observacoes:     alocacao.observacoes   || alocacao.Observacoes   || '',
           entrada:         formatarHora(checkIn),
@@ -217,13 +213,18 @@ export const DashboardCandidato = () => {
         const agora = new Date();
         const eventoJaPassou = dataPura && dataPura < agora;
 
-        if (checkOut) {
+        // SELETOR BLINDADO: Impede sumiços!
+        if (statusDB.toLowerCase() === 'cancelado') {
+          // Ignora totalmente (Segurança extra caso o Back-end envie cancelados)
+        } else if (checkOut || statusDB.toLowerCase() === 'pago') {
+          // Fez checkout ou já foi pago -> Vai pro Histórico (Aplicadas)
           historico.push(provaEstruturada);
         } else if (checkIn) {
+          // Fez checkin mas NÃO fez checkout -> Fica pendente
           pendentes.push(provaEstruturada);
 
           // RESTAURA estado do ponto se já bateu entrada hoje
-          if (checkIn && dataPura && ehHoje(dataPura)) {
+          if (dataPura && ehHoje(dataPura)) {
             if (registrosRestaurados.length === 0) {
               registrosRestaurados.push({
                 tipo:   'entrada',
@@ -232,8 +233,13 @@ export const DashboardCandidato = () => {
               });
             }
           }
-        }else if (!eventoJaPassou) {
+        } else if (!eventoJaPassou) {
+          // Não bateu ponto, mas a prova ainda vai acontecer -> Fica Pendente
           pendentes.push(provaEstruturada);
+        } else {
+          // Data já passou e NUNCA bateu ponto -> Vai pro Histórico como "Faltou" para não sumir do ar!
+          provaEstruturada.status = 'Ausente / Sem Ponto';
+          historico.push(provaEstruturada);
         }
       });
 
@@ -252,18 +258,14 @@ export const DashboardCandidato = () => {
 
   useEffect(() => {
     carregarEventos();
-    
+    carregarMinhasCandidaturas(); // MOVIDO PARA CIMA: Agora sim carrega ao abrir a página!
 
-    // 2. O RADAR: Cria um temporizador que roda a função de novo a cada 30 segundos
     const radarDeProvas = setInterval(() => {
       carregarEventos();
-    }, 30000); // 30000 milissegundos = 30 segundos
+    }, 30000);
 
-    // 3. A LIMPEZA: Quando o candidato sair da tela (fizer logout), desligamos o radar
     return () => clearInterval(radarDeProvas);
-    carregarMinhasCandidaturas();
   }, []);
-    
   
 
   // ─── 9. FINANCEIRO ───────────────────────────────────────────
@@ -285,12 +287,8 @@ export const DashboardCandidato = () => {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
   // ─── 10. ID DO EVENTO DE HOJE ────────────────────────────────
-  // 1º: Procura se tem ponto aberto (bateu entrada, mas não bateu saída)
   const provaEmAndamento = minhasCandidaturas.find(c => c.entrada !== '--:--' && c.saida === '--:--');
-  
-  // 2º: Se não tem ponto em andamento, procura prova de hoje
   const provaDeHoje = minhasCandidaturas.find(c => c.dataPura && ehHoje(c.dataPura));
-
   const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
 
   // ─── 11. BATER PONTO ─────────────────────────────────────────
@@ -375,7 +373,7 @@ export const DashboardCandidato = () => {
         status: 'Confirmado',
       };
       setMinhasCandidaturas(prev => [...prev, nova]);
-      carregarEventos(); // Atualiza a lista completa e refaz as contas
+      carregarEventos(); 
       alert('Inscrição confirmada com sucesso!');
       setProvaSelecionada(null);
       setActiveTab('candidaturas');
@@ -401,7 +399,6 @@ export const DashboardCandidato = () => {
     }
 
     try {
-      // 1. CORRIGIDO: Usando o ID da candidatura selecionada em vez da variável fantasma
       await api.put(`/alocacoes/evento/${candidaturaParaCancelar.id}/cancelar`, {
         motivo: motivoCancelamento
       });
@@ -412,7 +409,6 @@ export const DashboardCandidato = () => {
       carregarEventos();
       
     } catch (error) {
-      // 2. ADICIONADO: Se falhar novamente, isto vai mostrar no F12 (Console) o motivo exato do erro!
       console.error('Erro detalhado ao cancelar:', error.response?.data || error.message);
       alert('Erro ao cancelar inscrição. Verifique o console (F12).');
     }
@@ -825,7 +821,7 @@ export const DashboardCandidato = () => {
                         <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>ENTRADA</th>
                         <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>SAÍDA</th>
                         <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>HORAS</th>
-                        <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>FUNÇÃO</th>
+                        <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>STATUS / FUNÇÃO</th>
                         <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>VALOR</th>
                         <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>AÇÃO</th>
                       </tr>
@@ -844,8 +840,11 @@ export const DashboardCandidato = () => {
                             {prova.horasTrabalhadas > 0 ? `${prova.horasTrabalhadas.toFixed(1)}h` : '--'}
                           </td>
                           <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                            <span style={{ background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
+                            <span style={{ display: 'block', background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>
                               {prova.funcao}
+                            </span>
+                            <span style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: prova.status === 'Pago 💰' ? '#16a34a' : '#64748b' }}>
+                              {prova.status}
                             </span>
                           </td>
                           <td style={{ padding: '16px 24px', color: '#16a34a', fontSize: '14px', fontWeight: '700' }}>
@@ -859,7 +858,7 @@ export const DashboardCandidato = () => {
                     </tbody>
                   </table>
 
-                  {/* CARDS MOBILE (Aparecem apenas em telas pequenas) */}
+                  {/* CARDS MOBILE */}
                   <div className="mobile-cards-container">
                     {provasAplicadas.map(prova => (
                       <div className="prova-mobile-card" key={prova.id} style={{ marginBottom: '16px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
@@ -872,7 +871,10 @@ export const DashboardCandidato = () => {
                             {prova.funcao}
                           </span>
                         </div>
-                        <div className="prova-mobile-data" style={{ fontSize: '13px', color: '#475569', marginBottom: '12px' }}>📅 {prova.data}</div>
+                        <div className="prova-mobile-data" style={{ fontSize: '13px', color: '#475569', marginBottom: '12px' }}>
+                          📅 {prova.data}
+                          <strong style={{ color: prova.status === 'Pago 💰' ? '#16a34a' : '#64748b', display: 'block', marginTop: '4px' }}>Status: {prova.status}</strong>
+                        </div>
                         
                         <div className="prova-mobile-bottom" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', background: '#f8fafc', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '13px' }}>
@@ -935,7 +937,7 @@ export const DashboardCandidato = () => {
                     <div>
                       <div style={{ fontSize: '15px', color: '#334155', fontWeight: '500' }}>{prova.titulo}</div>
                       <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-                        {prova.horasTrabalhadas.toFixed(1)}h × R$ {valorFixoHora} · {prova.data}
+                        {prova.horasTrabalhadas > 0 ? prova.horasTrabalhadas.toFixed(1) : '0.0'}h × R$ {valorFixoHora} · {prova.data}
                       </div>
                     </div>
                     <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
@@ -999,7 +1001,6 @@ export const DashboardCandidato = () => {
               <div style={{ width: '100%', maxWidth: '800px' }}>
                 {scaneando ? (
                   <div
-                    // O e.stopPropagation() vai impedir que cliques aqui ativem o registro indesejado
                     onClick={(e) => e.stopPropagation()} 
                     style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', textAlign: 'center' }}
                   >
@@ -1014,12 +1015,9 @@ export const DashboardCandidato = () => {
                     <div style={{ maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid #3b82f6' }}>
                       <Scanner
                         onScan={(result) => {
-                          // Verifica se a câmera leu algo
                           if (result && result.length > 0) {
-                            // Extrai o texto lido com fallback seguro
                             const textoLido = result[0].rawValue || result[0].text || "";
                             
-                            // Verifica se é o QR Code oficial da HIS
                             if (textoLido.includes('EVENTO:')) {
                               confirmarScaneamentoQRCode();
                             } else {
