@@ -384,17 +384,26 @@ export const DashboardCandidato = () => {
   };
 
   const efetivarCancelamento = async () => {
-    if (!motivoCancelamento) { alert('Selecione um motivo.'); return; }
+    if (!motivoCancelamento) { 
+      alert('Selecione um motivo.'); 
+      return; 
+    }
+
     try {
-      await api.put(`/alocacoes/evento/${idEvento}/cancelar`, {
+      // 1. CORRIGIDO: Usando o ID da candidatura selecionada em vez da variável fantasma
+      await api.put(`/alocacoes/evento/${candidaturaParaCancelar.id}/cancelar`, {
         motivo: motivoCancelamento
       });
+
       setMinhasCandidaturas(prev => prev.filter(c => c.id !== candidaturaParaCancelar.id));
       alert(`Inscrição cancelada: ${motivoCancelamento}`);
       setCandidaturaParaCancelar(null);
       carregarEventos();
+      
     } catch (error) {
-      alert('Erro ao cancelar inscrição.');
+      // 2. ADICIONADO: Se falhar novamente, isto vai mostrar no F12 (Console) o motivo exato do erro!
+      console.error('Erro detalhado ao cancelar:', error.response?.data || error.message);
+      alert('Erro ao cancelar inscrição. Verifique o console (F12).');
     }
   };
 
