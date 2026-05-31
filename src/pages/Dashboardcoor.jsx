@@ -188,13 +188,15 @@ export const DashboardCoord = () => {
   const handleCriarEvento = async (e) => {
     e.preventDefault();
     try {
-      const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00`;
       const [ano, mes, dia] = eventoFormData.data.split('-');
       const [hora, min]     = eventoFormData.horario.split(':');
+      
+      const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00`;
       const duracao         = parseInt(eventoFormData.duracao) || 1;
       const horaFim         = parseInt(hora) + duracao;
       const dataFimExata    = `${ano}-${mes}-${dia}T${horaFim.toString().padStart(2,'0')}:${min}:00`;
       const vagas           = parseInt(eventoFormData.vagas) || 0;
+      
       const dto = {
         TituloProva: eventoFormData.nome, Serie: eventoFormData.serie || 'HIS',
         LocalProva:  'Heavenly International School',
@@ -204,10 +206,11 @@ export const DashboardCoord = () => {
         VagasLedor:  eventoFormData.tipoFuncao === 'Ledor'  ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.ceil(vagas / 2)  : 0),
         VagasFiscal: eventoFormData.tipoFuncao === 'Fiscal' ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.floor(vagas / 2) : 0),
       };
+      
       const salvo = await eventoService.criarEvento(dto);
 
-      const vl = salvo.vagasLedor  || 0;
-      const vf = salvo.vagasFiscal || 0;
+      const vl = salvo.vagasLedor  || dto.VagasLedor;
+      const vf = salvo.vagasFiscal || dto.VagasFiscal;
 
       setEventos(prev => [...prev, {
         id:               salvo.idEvento || Date.now(),
@@ -218,15 +221,12 @@ export const DashboardCoord = () => {
         vagasPreenchidas: salvo.vagasPreenchidas || 0,
         reservas:         0,
 
-        vagasLedor:            vl,
-        vagasFiscal:           vf,
-        vagasLedorDisponiveis:  salvo.vagasLedorDisponiveis,
-        vagasFiscalDisponiveis: salvo.vagasFiscalDisponiveis,
-
-        data: new Date(salvo.dataProva).toLocaleString('pt-BR', {
-          day:'2-digit', month:'2-digit', year:'numeric',
-          hour:'2-digit', minute:'2-digit'
-        }),
+        vagasLedor:             vl,
+        vagasFiscal:            vf,
+        vagasLedorDisponiveis:  salvo.vagasLedorDisponiveis ?? vl,
+        vagasFiscalDisponiveis: salvo.vagasFiscalDisponiveis ?? vf,
+        data: `${dia}/${mes}/${ano} ${eventoFormData.horario}`,
+        
         status: 'Agendado',
       }]);
 
