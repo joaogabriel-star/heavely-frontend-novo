@@ -1,173 +1,76 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Cadastro.css';
-import { authService } from '../services/api';
-
+import { api } from '../services/api'; // Importamos a instância do Axios
 
 export const Cadastro = () => {
-  // Estado para controlar o tipo de conta selecionado
+  const navigate = useNavigate();
   const [tipoConta, setTipoConta] = useState('');
   const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [arquivoNadaConsta, setArquivoNadaConsta] = useState(null);
   const [arquivoDiploma, setArquivoDiploma] = useState(null);
-  const [salvando, setSalvando] = useState(false);
   
-  // Estado unificado para todos os campos do formulário
   const [formData, setFormData] = useState({
-    nomeCompleto: '',
-    cpf: '',
-    dataNascimento: '',
-    celular: '',
-    email: '',
-    endereco: '',
-    escolaridadeNivel: '',
-    escolaridadeStatus: '',
-    cursoFormacao: '',
-    nivelIngles: 'Nenhum',
-    nivelEspanhol: 'Nenhum',
-    materias: [],
-    experienciaProfissional: '',
-    senha: '',
-    confirmarSenha: '',
-    aceiteTermos: false,
-    // Arquivos (armazenaremos os objetos File)
-    certificadoLedor: null,
-    nadaConsta: null,
+    nomeCompleto: '', cpf: '', dataNascimento: '', celular: '', email: '',
+    endereco: '', escolaridadeNivel: '', escolaridadeStatus: '', cursoFormacao: '',
+    nivelIngles: 'Nenhum', nivelEspanhol: 'Nenhum', materias: [],
+    experienciaProfissional: '', senha: '', confirmarSenha: '', aceiteTermos: false
   });
 
-  // Listas de opções para os botões (chips)
-  const niveisIdioma = ['Nenhum', 'Básico', 'Intermediário', 'Avançado'];
-  const materiasList = [
-    'Matemática', 'Português', 'Física', 'Química', 'Biologia', 
-    'História', 'Geografia', 'Filosofia', 'Sociologia', 'Literatura', 
-    'Inglês', 'Espanhol', 'Arte', 'Ed. Física', 'Redação'
-  ];
-
-  // Função para lidar com a digitação nos inputs normais
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const toggleMateria = (materia) => {
+    setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      materias: prev.materias.includes(materia) 
+        ? prev.materias.filter(m => m !== materia) 
+        : [...prev.materias, materia]
     }));
   };
 
-  // Função para selecionar/deselecionar matérias
-  const toggleMateria = (materia) => {
-    setFormData((prev) => {
-      const jaSelecionada = prev.materias.includes(materia);
-      return {
-        ...prev,
-        materias: jaSelecionada 
-          ? prev.materias.filter((m) => m !== materia) 
-          : [...prev.materias, materia],
-      };
-    });
-  };
-
-  // Função disparada ao clicar em "Criar minha conta"
-const handleSubmit = async (e) => {
+  // FUNÇÃO ÚNICA E UNIFICADA
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-
-    // 1. Validação simples
     if (formData.senha !== formData.confirmarSenha) {
       setErro('As senhas não coincidem.');
       return;
     }
 
-    if (!tipoConta) {
-      setErro('Por favor, selecione um tipo de conta.');
-      return;
-    }
-
-    setCarregando(true);
+    setSalvando(true);
+    setErro('');
 
     try {
-      // 2. O Desvio: Envia para a porta certa baseado no "tipoConta"
-      if (tipoConta === 'Coordenadores' || tipoConta === 'Coordenador') {
-        
-        await authService.cadastrarAdmin({
-          NomeCompleto: formData.nomeCompleto,
-          Cpf: formData.cpf,
-          Celular: formData.celular,
-          Email: formData.email,
-          DataNascimento: formData.dataNascimento,
-          EmailInstitucional: formData.email, // Usando o email pessoal como institucional por enquanto
-          Senha: formData.senha,
-          ConfirmarSenha: formData.confirmarSenha,
-          CargoInstituicao: "Coordenador Geral"
-        });
+      const data = new FormData();
+      
+      // Adiciona campos de texto
+      Object.keys(formData).forEach(key => {
+        if (key !== 'materias') data.append(key, formData[key]);
+      });
+      data.append('Materias', JSON.stringify(formData.materias));
+      data.append('TipoConta', tipoConta);
 
-      } else {
-        
-        await authService.cadastrar({
-          NomeCompleto: formData.nomeCompleto,
-          Cpf: formData.cpf,
-          DataNascimento: formData.dataNascimento,
-          Celular: formData.celular,
-          Email: formData.email,
-          Endereco: formData.endereco || "Não informado",
-          EscolaridadeNivel: formData.escolaridadeNivel || "Não informado",
-          EscolaridadeStatus: formData.escolaridadeStatus || "Não informado",
-          InstituicaoEnsino: formData.instituicaoEnsino || "Não informado",
-          NivelIngles: formData.nivelIngles || "Básico",
-          NivelEspanhol: formData.nivelEspanhol || "Básico",
-          ExperienciaProfissional: formData.experienciaProfissional || "Nenhuma",
-          Materias: formData.materias || "Geral",
-          Senha: formData.senha,
-          ConfirmarSenha: formData.confirmarSenha,
-          PossuiCertificadoLedor: tipoConta === 'Ledor'
-        });
+      // Adiciona arquivos se existirem
+      if (arquivoNadaConsta) data.append('NadaConstaFile', arquivoNadaConsta);
+      if (arquivoDiploma) data.append('CertificadoLedorFile', arquivoDiploma);
 
-      }
+      // Envia para o Back-end
+      await api.post('/usuarios/cadastro', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
-      // 3. Sucesso!
       alert('Cadastro realizado com sucesso!');
-      navigate('/login'); // Redireciona para a tela de login
-
+      navigate('/login');
     } catch (error) {
-      console.error('Erro no cadastro:', error);
-      // Pega a mensagem de erro que vem do C# (ex: "CPF já cadastrado")
-      setErro(error.response?.data?.mensagem || error.message || 'Erro ao realizar o cadastro. Tente novamente.');
+      console.error(error);
+      setErro(error.response?.data?.mensagem || 'Erro ao criar conta. Tente novamente.');
     } finally {
-      setCarregando(false);
+      setSalvando(false);
     }
   };
-
-  const handleCadastro = async (e) => {
-  e.preventDefault();
-  
-  // DETETIVE 1: Vemos se o botão pelo menos disparou a função
-  console.log("1. Botão clicado! Iniciando validação...");
-
-  // (Suas validações de senhas, campos, etc. vêm aqui...)
-
-  // Avisa a tela para mostrar o "Carregando..."
-  setSalvando(true); 
-
-  try {
-    const formData = new FormData();
-    // ... os seus formData.append() aqui ...
-
-    console.log("2. Enviando requisição para a API...");
-    
-    await api.post('/usuarios/cadastro', formData);
-    
-    console.log("3. Sucesso! A API respondeu.");
-    alert('Cadastro realizado com sucesso!');
-    
-    // Redireciona para o login ou limpa a tela...
-    
-  } catch (error) {
-    console.error("ERRO NO CADASTRO:", error);
-    alert('Erro ao criar conta. Verifique o console.');
-  } finally {
-    // Tira o carregando da tela, quer tenha dado certo ou erro
-    setSalvando(false);
-  }
-};
 
   return (
     <div className="cadastro-container">
