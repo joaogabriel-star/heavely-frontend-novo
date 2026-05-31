@@ -386,8 +386,9 @@ export const DashboardCandidato = () => {
   const efetivarCancelamento = async () => {
     if (!motivoCancelamento) { alert('Selecione um motivo.'); return; }
     try {
-      // ATENÇÃO: Aqui você precisará chamar a API de cancelamento futuramente!
-      // ex: await api.delete(`/alocacoes/${candidaturaParaCancelar.id}`);
+      await api.put(`/alocacoes/evento/${candidaturaParaCancelar.id}/cancelar`, {
+        motivo: motivoCancelamento
+      });
       setMinhasCandidaturas(prev => prev.filter(c => c.id !== candidaturaParaCancelar.id));
       alert(`Inscrição cancelada: ${motivoCancelamento}`);
       setCandidaturaParaCancelar(null);
