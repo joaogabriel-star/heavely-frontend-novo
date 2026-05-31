@@ -253,7 +253,17 @@ export const DashboardCandidato = () => {
   useEffect(() => {
     carregarEventos();
     carregarMinhasCandidaturas();
+
+    // 2. O RADAR: Cria um temporizador que roda a função de novo a cada 30 segundos
+    const radarDeProvas = setInterval(() => {
+      carregarEventos();
+    }, 30000); // 30000 milissegundos = 30 segundos
+
+    // 3. A LIMPEZA: Quando o candidato sair da tela (fizer logout), desligamos o radar
+    return () => clearInterval(radarDeProvas);
   }, []);
+    
+  
 
   // ─── 9. FINANCEIRO ───────────────────────────────────────────
   const valorFixoHora         = 37;
