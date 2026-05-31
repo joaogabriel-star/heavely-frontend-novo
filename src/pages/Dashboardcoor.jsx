@@ -185,6 +185,7 @@ export const DashboardCoord = () => {
   };
 
   // ── EVENTOS: CRIAR ─────────────────────────────────────────────
+ // ── EVENTOS: CRIAR ─────────────────────────────────────────────
   const handleCriarEvento = async (e) => {
     e.preventDefault();
     try {
@@ -207,35 +208,19 @@ export const DashboardCoord = () => {
         VagasFiscal: eventoFormData.tipoFuncao === 'Fiscal' ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.floor(vagas / 2) : 0),
       };
       
-      const salvo = await eventoService.criarEvento(dto);
+      await eventoService.criarEvento(dto);
 
-      const vl = salvo.vagasLedor  || dto.VagasLedor;
-      const vf = salvo.vagasFiscal || dto.VagasFiscal;
-
-      setEventos(prev => [...prev, {
-        id:               salvo.idEvento || Date.now(),
-        titulo:           salvo.nomeProva || eventoFormData.nome,
-        serie:            eventoFormData.serie || '',
-        valor:            eventoFormData.valor || '37',
-        vagasTotais:      vl + vf,
-        vagasPreenchidas: salvo.vagasPreenchidas || 0,
-        reservas:         0,
-
-        vagasLedor:             vl,
-        vagasFiscal:            vf,
-        vagasLedorDisponiveis:  salvo.vagasLedorDisponiveis ?? vl,
-        vagasFiscalDisponiveis: salvo.vagasFiscalDisponiveis ?? vf,
-        data: `${dia}/${mes}/${ano} ${eventoFormData.horario}`,
-        
-        status: 'Agendado',
-      }]);
+      // A MÁGICA ESTÁ AQUI 👇
+      // Igual ao botão de Editar, recarregamos tudo do C# para os relógios ficarem sincronizados
+      await carregarDadosIniciais();
 
       setIsModalOpen(false);
       setEventoFormData({ nome:'',serie:'',data:'',horario:'',duracao:'',vagas:'',valor:'',tipoFuncao:'Ledor',observacoes:'' });
-      alert('Evento criado com sucesso!');
+      alert('✅ Evento criado com sucesso!');
     } catch (error) {
       const msg = error.response?.data?.mensagem || (error.response?.data?.errors ? JSON.stringify(error.response?.data?.errors) : 'Verifique os dados e tente novamente.');
-      alert(`Erro ao criar evento: ${msg}`); console.error(error);
+      alert(`Erro ao criar evento: ${msg}`); 
+      console.error(error);
     }
   };
 
