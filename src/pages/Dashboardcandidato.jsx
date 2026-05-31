@@ -252,7 +252,7 @@ export const DashboardCandidato = () => {
 
   useEffect(() => {
     carregarEventos();
-    carregarMinhasCandidaturas();
+    
 
     // 2. O RADAR: Cria um temporizador que roda a função de novo a cada 30 segundos
     const radarDeProvas = setInterval(() => {
@@ -261,6 +261,7 @@ export const DashboardCandidato = () => {
 
     // 3. A LIMPEZA: Quando o candidato sair da tela (fizer logout), desligamos o radar
     return () => clearInterval(radarDeProvas);
+    carregarMinhasCandidaturas();
   }, []);
     
   
