@@ -569,519 +569,110 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
    por este único bloco limpo e sem conflitos
 ══════════════════════════════════════════════════════════ */
 
-/* ── TABLET (769–1024px) ─────────────────────────────── */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .stats          { grid-template-columns: repeat(2, 1fr); }
-  .page           { padding: 20px; }
-  .modal          { max-width: 560px; }
-  .aprov-fields   { grid-template-columns: repeat(2, 1fr); }
-  .ganhos-grid    { grid-template-columns: 1fr 1fr; }
-}
-
-/* ── MOBILE (≤ 768px) ────────────────────────────────── */
-@media (max-width: 768px) {
-
-  /* ─── ROOT ─────────────────────────────────────────── */
-  .dashboard-container {
-    min-height: 100vh;
-    background: #f1f5f9;
-    padding-bottom: 80px;
-  }
-
-  /* ─── NAVBAR ────────────────────────────────────────── */
-  .nav { padding: 10px 14px; }
-
-  .nav-brand > span:not(.his-mark) { display: none; }
-  .nav-btn        { display: none; }
-  .nav-sep        { display: none; }
-  .nav-user-info  { display: none; }
-  .nav-brand      { gap: 8px; }
-  .nav-brand-icon { width: 30px; height: 30px; }
-  .his-mark       { font-size: 12px; padding: 2px 6px; }
-  .avatar         { width: 34px; height: 34px; font-size: 13px; }
-
-  /* ─── TABS BAR → BOTTOM NAV FIXO ───────────────────── */
-  .tabs-bar {
-    display: flex !important;
-    position: fixed;
-    bottom: 0; left: 0; right: 0; top: auto;
-    z-index: 200;
-    background: #fff;
-    border-top: 1px solid #e4e7ed;
-    border-bottom: none;
-    padding: 6px 0 env(safe-area-inset-bottom, 10px);
-    justify-content: space-around;
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
-  }
-
-  .tab {
-    flex: 1;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center;
-    gap: 3px;
-    padding: 6px 4px;
-    border-bottom: none !important;
-    border-radius: 0;
-    color: #9aa3b2;
-    background: none;
-    min-width: 0;
-    font-family: 'DM Sans', sans-serif;
-    border: none;
-    cursor: pointer;
-  }
-
-  .tab:hover { background: none; }
-
-  .tab.active {
-    color: #2563eb;
-    border-bottom: none !important;
-  }
-
-  .tab.active svg,
-  .tab.active .lucide { stroke: #2563eb !important; }
-
-  .tab svg,
-  .tab .lucide {
-    width: 22px !important;
-    height: 22px !important;
-    stroke: #9aa3b2;
-    flex-shrink: 0;
-  }
-
-  .tab-label {
-    font-size: 10px !important;
-    font-weight: 600;
-    line-height: 1;
-    display: block !important;
-  }
-
-  .badge-flutuante {
-    top: -5px;
-    right: -8px;
-    font-size: 9px;
-    padding: 1px 4px;
-    border: 1.5px solid #fff;
-  }
-
-  /* ─── PAGE ──────────────────────────────────────────── */
-  .page {
-    padding: 14px;
-    padding-bottom: 90px;
-    max-width: 100%;
-  }
-  .panel { width: 100%; }
-
-  /* ─── PAGE HEADER ───────────────────────────────────── */
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  .page-title { font-size: 20px; }
-  .page-sub   { font-size: 13px; margin-bottom: 0; }
-
-  .btn-primary {
-    width: 100%;
-    text-align: center;
-    padding: 13px 16px;
-    font-size: 14px;
-    border-radius: 10px;
-    display: block;
-  }
-
-  /* ─── STATS: 2 colunas ──────────────────────────────── */
-  .stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  .stat {
-    padding: 14px;
-    border-radius: 12px;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-  }
-  .stat-ico { width: 36px; height: 36px; font-size: 18px; border-radius: 8px; }
-  .stat-lbl { font-size: 11px; }
-  .stat-val  { font-size: 24px; }
-
-  /* ─── CARD ──────────────────────────────────────────── */
-  .card       { border-radius: 12px; margin-bottom: 12px; }
-  .card-head  { padding: 14px 16px; }
-  .card-title { font-size: 15px; }
-
-  /* ─── SUB-TABS ──────────────────────────────────────── */
-  .sub-tabs {
-    padding: 0 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    gap: 0;
-  }
-  .sub-tabs::-webkit-scrollbar { display: none; }
-  .sub-tab { padding: 10px 12px; font-size: 13px; white-space: nowrap; }
-
-  /* ─── TABELA DE EVENTOS: scroll horizontal ──────────── */
-  /* Remove qualquer padding inline que possa atrapalhar */
+/* ─── TABELAS GERAIS (Dashboard e Relatórios) ──────────── */
+  /* Cria uma área de scroll horizontal perfeita para tabelas, sem quebrar a tela inteira */
   .tbl-wrap {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     padding: 0 !important;
+    margin: 0 -16px; /* Faz a tabela ir de ponta a ponta na tela do celular */
+    padding-bottom: 10px !important;
   }
 
-  /* Tabela principal de eventos: scroll, não some */
   .tbl-wrap table {
     width: 100% !important;
-    min-width: 0 !important;   /* sem min-width: permite colapso */
-    font-size: 12px !important;
+    min-width: 650px !important; /* Força a tabela a ter tamanho legível, ativando o scroll */
+    font-size: 13px !important;
     table-layout: auto !important;
   }
 
-  /* Cabeçalho compacto */
-  .tbl-wrap thead th {
-    padding: 9px 10px !important;
-    font-size: 10px !important;
-    white-space: nowrap !important;
+  /* Devolvemos o padding para a primeira e última coluna não encostarem na borda do celular */
+  .tbl-wrap th:first-child, 
+  .tbl-wrap td:first-child {
+    padding-left: 16px !important;
+  }
+  .tbl-wrap th:last-child, 
+  .tbl-wrap td:last-child {
+    padding-right: 16px !important;
   }
 
-  /* Células compactas */
+  /* Células confortáveis para o toque (Touch Targets) */
   .tbl-wrap tbody td {
-    padding: 10px !important;
-    font-size: 12px !important;
-    vertical-align: top !important;
+    padding: 12px 10px !important;
+    vertical-align: middle !important;
   }
 
-  /* Coluna EVENTO: nome pode quebrar */
-  .tbl-wrap tbody td:first-child {
-    min-width: 110px;
-    max-width: 140px;
-  }
-
-  /* Coluna DATA: compacta */
-  .tbl-wrap tbody td:nth-child(2) {
-    min-width: 90px;
-    white-space: nowrap;
-  }
-
-  /* Coluna OCUPAÇÃO: barra menor */
-  .tbl-wrap tbody td:nth-child(3) {
-    min-width: 80px;
-  }
-
-  /* Coluna STATUS: esconde no mobile para ganhar espaço */
+  /* (OPCIONAL) Remova as regras que escondiam a 4ª coluna, 
+     pois agora com o scroll horizontal o usuário pode ver tudo deslizando o dedo! */
   .tbl-wrap thead th:nth-child(4),
   .tbl-wrap tbody td:nth-child(4) {
-    display: none !important;
+    display: table-cell !important;
   }
 
-  /* Coluna AÇÃO: compacta */
-  .tbl-wrap thead th:nth-child(5),
-  .tbl-wrap tbody td:nth-child(5) {
-    min-width: 70px;
+  /* Ajuste dos botões de ação na tabela para não quebrarem a linha */
+  .tbl-wrap button {
     white-space: nowrap;
+    padding: 8px 12px !important;
   }
 
-  /* Nome do evento: quebra de linha OK */
-  .tbl-wrap table tbody td strong,
-  .tbl-wrap table tbody td .ev-name {
-    font-size: 12px !important;
-    line-height: 1.3 !important;
-    white-space: normal !important;
+
+  /* ─── PÁGINA: RELATÓRIOS ───────────────────────────────── */
+  
+  /* Botões de aba superiores (Gerar QR Code / Nota Fiscal) */
+  .panel > div > div[style*="display: flex; border-bottom"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap !important;
+  }
+  .panel > div > div[style*="display: flex; border-bottom"]::-webkit-scrollbar {
+    display: none;
+  }
+  .panel > div > div[style*="display: flex; border-bottom"] button {
+    white-space: nowrap;
+    padding: 12px 16px !important;
   }
 
-  /* Preço abaixo do nome */
-  .tbl-wrap table tbody td > div:last-child {
-    font-size: 11px !important;
+  /* Banner Informativo "Como funciona" do QR Code */
+  div[style*="background: #eff6ff"] {
+    flex-direction: column !important; /* Empilha o ícone e o texto */
+    gap: 12px !important;
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+  div[style*="background: #eff6ff"] > span {
+    font-size: 24px !important; /* Ícone maior para destaque no mobile */
   }
 
-  /* Barra de progresso menor */
-  .tbl-wrap table tbody td div[style*="width: 120px"] {
-    width: 60px !important;
+  /* Modal de exibição do QR Code (Ajuste para não estourar a tela) */
+  div[style*="width: 420px"] {
+    width: 90% !important;
+    padding: 24px 20px !important;
   }
-
-  /* ─── MEMBROS: tabela vira cards ────────────────────── */
-  .members-table {
-    display: table !important;
-    width: 100%;
+  div[style*="width: 420px"] img {
+    max-width: 100% !important;
+    height: auto !important;
   }
-  .members-table thead { display: none; }
-
-  .members-table tbody tr {
-    display: flex !important;
+  /* Agrupa os botões do modal QR em coluna se faltar espaço */
+  div[style*="width: 420px"] > div:last-child {
     flex-direction: column;
-    padding: 14px 16px;
-    border-bottom: 1px solid #f1f5f9;
-    gap: 10px;
+    gap: 8px !important;
   }
-
-  .members-table tbody td {
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0;
-    font-size: 14px;
-    border-bottom: none;
-  }
-
-  .members-table tbody td:nth-child(3) { display: none !important; }
-
-  .role-select {
-    font-size: 13px;
-    padding: 6px 10px;
-    width: auto;
-    flex: 1;
-    max-width: 160px;
-  }
-
-  .members-footer {
-    padding: 14px 16px;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .members-footer .btn-outline,
-  .members-footer .btn-primary { width: 100%; text-align: center; }
-
-  /* ─── APROVAÇÃO ─────────────────────────────────────── */
-  .aprov-item { flex-direction: column; padding: 16px; gap: 14px; }
-  .aprov-av   { width: 40px; height: 40px; font-size: 14px; }
-
-  .aprov-header {
-    flex-direction: column;
-    gap: 12px;
+  div[style*="width: 420px"] > div:last-child button {
     width: 100%;
-  }
-
-  .aprov-actions {
-    flex-direction: row;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .btn-success-small,
-  .btn-danger-small {
-    flex: 1;
-    width: auto;
-    text-align: center;
-    padding: 9px 12px;
-    font-size: 13px;
-    border-radius: 8px;
     justify-content: center;
   }
 
-  .aprov-fields   { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .aprov-field-label { font-size: 10px; }
-  .aprov-field-val   { font-size: 13px; }
-
-  /* ─── PERFIL ────────────────────────────────────────── */
-  .field-grp            { margin-bottom: 14px; }
-  .field-grp label      { font-size: 11px; }
-  .field-grp input,
-  .field-grp select     { font-size: 14px; padding: 11px 12px; }
-
-  div[style*="grid-template-columns: 1fr 1fr"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* ─── GANHOS ────────────────────────────────────────── */
-  .ganhos-grid { grid-template-columns: 1fr; }
-  .detalhe-row { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .detalhe-row span:last-child { align-self: flex-end; font-weight: 600; }
-
-  /* ─── MODAL → BOTTOM SHEET ──────────────────────────── */
-  .overlay { align-items: flex-end !important; }
-
-  .modal {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    padding: 20px 16px 32px !important;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-
-  .modal::before {
-    content: '';
-    display: block;
-    width: 36px; height: 4px;
-    background: #e2e8f0;
-    border-radius: 2px;
-    margin: 0 auto 16px;
-  }
-
-  .modal-title { font-size: 18px; }
-
-  .modal-grid {
-    grid-template-columns: 1fr !important;
+  /* ─── PÁGINA: DASHBOARD (Estatísticas) ─────────────────── */
+  .stats {
+    grid-template-columns: 1fr 1fr; /* Mantém 2 colunas */
     gap: 12px;
   }
-  .modal-grid .field-grp.full,
-  .modal-grid .field-grp { grid-column: 1 / -1; }
-
-  .modal-footer { flex-direction: column; gap: 10px; }
-  .modal-footer .btn-outline,
-  .modal-footer .btn-primary {
-    width: 100%;
-    padding: 13px;
-    font-size: 14px;
+  .stat {
+    padding: 12px;
+    align-items: center; /* Centraliza o ícone com o texto */
     text-align: center;
   }
-
-  /* ─── DETALHES DO EVENTO ─────────────────────────────── */
-
-  /* Breadcrumb */
-  .detalhes-evento-view > div:first-child {
-    font-size: 13px;
-    flex-wrap: wrap;
+  .stat-ico {
+    margin-bottom: 4px;
   }
-
-  /* Card de cabeçalho (título + botões) */
-  .detalhes-evento-view > div:nth-child(2) {
-    flex-direction: column !important;
-    gap: 16px !important;
-    padding: 16px !important;
-  }
-
-  /* Bloco de meta (data, valor, status) */
-  .detalhes-evento-view > div:nth-child(2) > div:first-child > div:last-child {
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-  }
-
-  /* Botões Editar / Publicar */
-  .detalhes-evento-view > div:nth-child(2) > div:last-child {
-    flex-direction: column !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-
-  .detalhes-evento-view > div:nth-child(2) > div:last-child button {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  /* Título da prova menor */
-  .detalhes-evento-view h1 {
-    font-size: 18px !important;
-  }
-
-  /* Cards de distribuição de salas e observações */
-  .detalhes-evento-view > div:nth-child(3),
-  .detalhes-evento-view > div:nth-child(4) {
-    padding: 16px !important;
-  }
-
-  /* Tabela de alocações/salas → scroll horizontal */
-  .detalhes-evento-view .tbl-wrap,
-  .detalhes-evento-view > div table {
-    overflow-x: auto !important;
-  }
-
-  .detalhes-evento-view table {
-    display: table !important;   /* mantém visível, não some */
-    min-width: 400px !important;
-    font-size: 12px !important;
-  }
-
-  .detalhes-evento-view table th,
-  .detalhes-evento-view table td {
-    padding: 10px 8px !important;
-    font-size: 12px !important;
-  }
-
-  /* Input de sala: full width no mobile */
-  .detalhes-evento-view input[type="text"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    font-size: 13px !important;
-  }
-
-  /* Botão Salvar Salas: full width */
-  .detalhes-evento-view > div:nth-child(3) > div:last-child {
-    justify-content: stretch !important;
-  }
-
-  .detalhes-evento-view > div:nth-child(3) > div:last-child button {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  /* Textarea de observações */
-  .detalhes-evento-view textarea {
-    font-size: 13px !important;
-    padding: 12px !important;
-  }
-
-  /* ─── EQUIPE QUE APLICOU (tela concluído) ────────────── */
-  .equipe-hd { display: none !important; }
-
-  .equipe-row {
-    display: flex !important;
-    flex-direction: column !important;
-    grid-template-columns: none !important;
-    gap: 8px !important;
-    padding: 14px 16px !important;
-    background: #f8f9fb !important;
-    border-radius: 8px !important;
-    margin: 8px 12px !important;
-    border: 1px solid #e5e7eb !important;
-  }
-
-  .equipe-row-top {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 10px !important;
-  }
-
-  .equipe-row-horarios {
-    display: flex !important;
-    gap: 20px !important;
-  }
-
-  .equipe-row-horario-item {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 2px !important;
-  }
-
-  .equipe-row-horario-label {
-    font-size: 9.5px !important;
-    font-weight: 700 !important;
-    color: #9aa3b2 !important;
-    text-transform: uppercase !important;
-  }
-
-  .equipe-row-horario-val {
-    font-size: 14px !important;
-    font-weight: 600 !important;
-  }
-
-  /* ─── CANCELAMENTOS ──────────────────────────────────── */
-  .cancel-row-wrap { flex-wrap: wrap !important; gap: 8px !important; }
-  .cancel-legenda  { flex-wrap: wrap !important; gap: 5px !important; }
-
-  /* ─── SALA INPUT ─────────────────────────────────────── */
-  .sala-input {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  /* ─── BOTÕES GERAIS NOS DETALHES ─────────────────────── */
-  /* Remove a regra que forçava TODOS os botões com width:100%
-     (causava problemas em badges e pills) */
-  .detalhes-evento-view .link-det { width: auto !important; }
-
-} /* fim @media 768px */
-
-/* ── TABLET ───────────────────────────────── */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .stats { grid-template-columns: repeat(2, 1fr); }
-  .page  { padding: 20px; }
-  .modal { max-width: 560px; }
-  .aprov-fields { grid-template-columns: repeat(2, 1fr); }
-}
-
