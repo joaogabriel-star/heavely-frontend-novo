@@ -205,8 +205,11 @@ body { font-family:'DM Sans',sans-serif; background:var(--gray-50); color:var(--
 
 /* ══ CARD E SUB-TABS ════════════════════════════════ */
 .card {
-  background:var(--white); border:1px solid var(--gray-200);
-  border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+  background:var(--white); 
+  border:1px solid var(--gray-200);
+  border-radius:var(--radius); 
+  box-shadow:var(--shadow); 
+  overflow:hidden;
   margin-bottom:20px;
 }
 .card-head {

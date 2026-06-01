@@ -191,11 +191,8 @@ export const DashboardCoord = () => {
       const [ano, mes, dia] = eventoFormData.data.split('-');
       const [hora, min]     = eventoFormData.horario.split(':');
       
-      // A MÁGICA: Adicionamos o "-03:00" para avisar o C# que este horário é de Brasília!
-      // Assim, ele nunca mais vai dizer que a hora já passou, nem vai comer 3 horas da tela.
       const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00-03:00`;
       
-      // Cálculo seguro da hora de fim (evita bugs se a prova passar da meia-noite)
       const duracao = parseInt(eventoFormData.duracao) || 1;
       const dataFimObj = new Date(ano, mes - 1, dia, parseInt(hora) + duracao, parseInt(min));
       
@@ -221,7 +218,6 @@ export const DashboardCoord = () => {
       
       await eventoService.criarEvento(dto);
 
-      // Recarrega os dados fresquinhos do C#
       await carregarDadosIniciais();
 
       setIsModalOpen(false);
@@ -242,12 +238,10 @@ export const DashboardCoord = () => {
     try {
       const resposta = await api.get(`/alocacoes/${ev.id}/lista`);
       const todas = resposta.data.map(a => {
-        // Correção de Status para aceitar pessoas confirmadas ou presentes
         const statusFiltrado = (a.statusParticipacao === 'Confirmado' || a.statusParticipacao === 'Presente') ? 'Confirmado'
                              : a.statusParticipacao === 'Cancelado'  ? 'Cancelado'
                              :                                         'Na Reserva';
 
-        // Função interna para ler as chaves de hora corretas do DTO C# (checkInTime e checkOutTime)
         const formatarHoraBatida = (isoString) => {
           if (!isoString) return '';
           try {
@@ -306,7 +300,6 @@ export const DashboardCoord = () => {
   const abrirModalEdicao = () => {
     if (!eventoEmDetalhe) return;
     try {
-      // Lê a dataPura que acabamos de criar, garantindo precisão matemática
       const d = new Date(eventoEmDetalhe.dataPura);
       const ano = d.getFullYear();
       const mes = String(d.getMonth() + 1).padStart(2, '0');
@@ -321,7 +314,7 @@ export const DashboardCoord = () => {
         nome: eventoEmDetalhe.titulo, 
         serie: eventoEmDetalhe.serie || '',
         data: `${ano}-${mes}-${dia}`, 
-        horario: `${hora}:${min}`, // O campo de hora agora recebe o valor perfeito!
+        horario: `${hora}:${min}`,
         duracao: '4',
         vagas: eventoEmDetalhe.vagasTotais.toString(), 
         valor: eventoEmDetalhe.valor, 
@@ -337,7 +330,7 @@ export const DashboardCoord = () => {
     }
   };
 
-  // ── EDICAO CORRIGIDA (SEM TIMEOUT DE 3 HORAS) ──────────────────────
+  // ── EDICAO CORRIGIDA ──────────────────────
 const handleSalvarEdicao = async (e) => {
     e.preventDefault();
     try {
@@ -362,11 +355,10 @@ const handleSalvarEdicao = async (e) => {
       
       await api.put(`/eventos/${idEventoEditando}`, dto);
       
-      // O SEGREDO ESTÁ AQUI: Atualiza os dados com o servidor para sincronizar os relógios!
       await carregarDadosIniciais();
       
       setIsModalOpen(false);
-      setEventoEmDetalhe(null); // Fecha a tela de detalhes para mostrar a lista atualizada
+      setEventoEmDetalhe(null);
       alert('✅ Evento atualizado com sucesso!');
     } catch (error) { 
       console.error("Erro ao salvar edição:", error); 
@@ -510,14 +502,68 @@ const handleSalvarEdicao = async (e) => {
                         <button className="btn-primary" onClick={() => { setEditMode(false); setIsModalOpen(true); }}>Criar meu primeiro evento</button>
                       </div>
                     ) : (
-                      <table>
-                        <thead>
-                          <tr><th>EVENTO</th><th>DATA</th><th>OCUPAÇÃO</th><th>STATUS</th><th>AÇÃO</th></tr>
-                        </thead>
-                        <tbody>
+                      <>
+                        {/* ── TABELA DESKTOP ── */}
+                        <table className="desktop-table">
+                          <thead>
+                            <tr><th>EVENTO</th><th>DATA</th><th>OCUPAÇÃO</th><th>STATUS</th><th>AÇÃO</th></tr>
+                          </thead>
+                          <tbody>
+                            {eventos.filter(ev => {
+                              if (activeSubTab === 'agendados')  return ev.status === 'Agendado';
+                              if (activeSubTab === 'concluidos') return ev.status === 'Concluído';
+                              return true;
+                            }).map(ev => {
+                              const vl = ev.vagasLedor  ?? 0;
+                              const vf = ev.vagasFiscal ?? 0;
+                              const total      = vl + vf;
+                              const ledorDisp  = Math.max(0, ev.vagasLedorDisponiveis  !== undefined && ev.vagasLedorDisponiveis  !== null ? ev.vagasLedorDisponiveis  : vl);
+                              const fiscalDisp = Math.max(0, ev.vagasFiscalDisponiveis !== undefined && ev.vagasFiscalDisponiveis !== null ? ev.vagasFiscalDisponiveis : vf);
+                              const ocupacao   = (vl - ledorDisp) + (vf - fiscalDisp);
+                              const pct        = total > 0 ? (ocupacao / total) * 100 : 0;
+                              return (
+                                <tr key={ev.id}>
+                                  <td>
+                                    <strong style={{ fontSize: '14px', color: '#1a1a1a' }}>{ev.titulo}</strong>
+                                    <div style={{ fontSize: '12px', color: '#6b7280' }}>R$ {ev.valor}/hora</div>
+                                  </td>
+                                  <td style={{ fontSize: '14px', color: '#4b5563' }}>{ev.data}</td>
+                                  <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <div style={{ width: '120px', height: '6px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
+                                        <div style={{
+                                          width: `${pct}%`,
+                                          height: '100%',
+                                          backgroundColor: pct >= 100 ? '#10b981' : '#3b82f6'
+                                        }} />
+                                      </div>
+                                      <span style={{ fontSize: '13px' }}>{ocupacao}/{total}</span>
+                                    </div>
+                                    {ev.reservas > 0 && (
+                                      <span style={{ fontSize: '11px', color: '#d97706' }}>+{ev.reservas} na reserva</span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <span style={{ backgroundColor: ev.status === 'Concluído' ? '#d1fae5' : ev.status === 'Cancelado' ? '#fee2e2' : '#e0e7ff', color: ev.status === 'Concluído' ? '#065f46' : ev.status === 'Cancelado' ? '#991b1b' : '#4338ca', padding: '4px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: '500' }}>
+                                      {ev.status}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <button onClick={() => abrirDetalhesEvento(ev)} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+                                      Detalhes →
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+
+                        {/* ── CARDS MOBILE ── */}
+                        <div className="mobile-cards-container">
                           {eventos.filter(ev => {
-                            if (activeSubTab==='agendados')  return ev.status==='Agendado';
-                            if (activeSubTab==='concluidos') return ev.status==='Concluído';
+                            if (activeSubTab === 'agendados')  return ev.status === 'Agendado';
+                            if (activeSubTab === 'concluidos') return ev.status === 'Concluído';
                             return true;
                           }).map(ev => {
                             const vl = ev.vagasLedor  ?? 0;
@@ -527,43 +573,39 @@ const handleSalvarEdicao = async (e) => {
                             const fiscalDisp = Math.max(0, ev.vagasFiscalDisponiveis !== undefined && ev.vagasFiscalDisponiveis !== null ? ev.vagasFiscalDisponiveis : vf);
                             const ocupacao   = (vl - ledorDisp) + (vf - fiscalDisp);
                             const pct        = total > 0 ? (ocupacao / total) * 100 : 0;
+                            
+                            // Define cores da tag de status no mobile
+                            let statusBg = '#e0e7ff';
+                            let statusColor = '#4338ca';
+                            if (ev.status === 'Concluído') { statusBg = '#d1fae5'; statusColor = '#065f46'; }
+                            if (ev.status === 'Cancelado') { statusBg = '#fee2e2'; statusColor = '#991b1b'; }
+
                             return (
-                              <tr key={ev.id}>
-                                <td>
-                                  <strong style={{ fontSize:'14px', color:'#1a1a1a' }}>{ev.titulo}</strong>
-                                  <div style={{ fontSize:'12px', color:'#6b7280' }}>R$ {ev.valor}/hora</div>
-                                </td>
-                                <td style={{ fontSize:'14px', color:'#4b5563' }}>{ev.data}</td>
-                                <td>
-                                  <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                                    <div style={{ width:'120px', height:'6px', backgroundColor:'#e5e7eb', borderRadius:'4px', overflow:'hidden' }}>
-                                      <div style={{
-                                        width: `${pct}%`,
-                                        height: '100%',
-                                        backgroundColor: pct >= 100 ? '#10b981' : '#3b82f6'
-                                      }} />
-                                    </div>
-                                    <span style={{ fontSize:'13px' }}>{ocupacao}/{total}</span>
+                              <div className="prova-mobile-card" key={ev.id}>
+                                <div className="prova-mobile-top">
+                                  <div className="prova-mobile-nome">
+                                    {ev.titulo}
+                                    <div className="prova-mobile-sub">R$ {ev.valor}/hora</div>
                                   </div>
-                                  {ev.reservas > 0 && (
-                                    <span style={{ fontSize:'11px', color:'#d97706' }}>+{ev.reservas} na reserva</span>
-                                  )}
-                                </td>
-                                <td>
-                                  <span style={{ backgroundColor: ev.status==='Concluído'?'#d1fae5':ev.status==='Cancelado'?'#fee2e2':'#e0e7ff', color: ev.status==='Concluído'?'#065f46':ev.status==='Cancelado'?'#991b1b':'#4338ca', padding:'4px 12px', borderRadius:'9999px', fontSize:'12px', fontWeight:'500' }}>
+                                  <span style={{ backgroundColor: statusBg, color: statusColor, padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>
                                     {ev.status}
                                   </span>
-                                </td>
-                                <td>
-                                  <button onClick={() => abrirDetalhesEvento(ev)} style={{ background:'none', border:'none', color:'#2563eb', fontWeight:'600', cursor:'pointer', fontSize:'14px' }}>
-                                    Detalhes →
-                                  </button>
-                                </td>
-                              </tr>
+                                </div>
+                                <div className="prova-mobile-data">📅 {ev.data}</div>
+                                <div className="prova-mobile-bottom">
+                                  <div className="prova-mobile-progress">
+                                    <div className="prova-mobile-bar">
+                                      <div className="prova-mobile-bar-fill" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#10b981' : '#3b82f6' }}></div>
+                                    </div>
+                                    <span className="prova-mobile-vagas">{ocupacao}/{total}</span>
+                                  </div>
+                                  <button onClick={() => abrirDetalhesEvento(ev)} className="btn-candidatar-mobile">Detalhes →</button>
+                                </div>
+                              </div>
                             );
                           })}
-                        </tbody>
-                      </table>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
