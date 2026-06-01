@@ -184,25 +184,30 @@ export const DashboardCoord = () => {
     } catch (error) { alert('Erro ao salvar alterações.'); }
   };
 
-  // ── EVENTOS: CRIAR ─────────────────────────────────────────────
+ // ── EVENTOS: CRIAR ─────────────────────────────────────────────
   const handleCriarEvento = async (e) => {
     e.preventDefault();
     try {
       const [ano, mes, dia] = eventoFormData.data.split('-');
       const [hora, min]     = eventoFormData.horario.split(':');
       
-      // 1. Criamos a data no fuso horário local do navegador (Brasil)
-      const dataInicioLocal = new Date(ano, mes - 1, dia, hora, min);
+      // A MÁGICA: Adicionamos o "-03:00" para avisar o C# que este horário é de Brasília!
+      // Assim, ele nunca mais vai dizer que a hora já passou, nem vai comer 3 horas da tela.
+      const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00-03:00`;
       
-      // 2. Convertemos para o Padrão Global (UTC) para enviar ao C#
-      // O React vai transformar 14:00 do Brasil em 17:00Z (UTC) automaticamente
-      const dataInicioExata = dataInicioLocal.toISOString(); 
+      // Cálculo seguro da hora de fim (evita bugs se a prova passar da meia-noite)
+      const duracao = parseInt(eventoFormData.duracao) || 1;
+      const dataFimObj = new Date(ano, mes - 1, dia, parseInt(hora) + duracao, parseInt(min));
       
-      const duracao         = parseInt(eventoFormData.duracao) || 1;
-      const dataFimLocal    = new Date(ano, mes - 1, dia, parseInt(hora) + duracao, min);
-      const dataFimExata    = dataFimLocal.toISOString();
+      const anoFim = dataFimObj.getFullYear();
+      const mesFim = String(dataFimObj.getMonth() + 1).padStart(2, '0');
+      const diaFim = String(dataFimObj.getDate()).padStart(2, '0');
+      const horaFimStr = String(dataFimObj.getHours()).padStart(2, '0');
+      const minFimStr = String(dataFimObj.getMinutes()).padStart(2, '0');
       
-      const vagas           = parseInt(eventoFormData.vagas) || 0;
+      const dataFimExata = `${anoFim}-${mesFim}-${diaFim}T${horaFimStr}:${minFimStr}:00-03:00`;
+      
+      const vagas = parseInt(eventoFormData.vagas) || 0;
       
       const dto = {
         TituloProva: eventoFormData.nome, Serie: eventoFormData.serie || 'HIS',
@@ -216,6 +221,7 @@ export const DashboardCoord = () => {
       
       await eventoService.criarEvento(dto);
 
+      // Recarrega os dados fresquinhos do C#
       await carregarDadosIniciais();
 
       setIsModalOpen(false);
