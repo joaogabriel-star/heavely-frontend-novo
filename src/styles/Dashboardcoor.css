@@ -211,6 +211,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--gray-50); color:var(--
   box-shadow:var(--shadow); 
   overflow:hidden;
   margin-bottom:20px;
+  
 }
 .card-head {
   padding:18px 24px; border-bottom:1px solid var(--gray-100);
@@ -844,7 +845,12 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
 
   /* ─── CARD ──────────────────────────────────────────── */
 
-  .card       { border-radius: 12px; margin-bottom: 12px; }
+  .card       
+  { border-radius: 12px; 
+    margin-bottom: 12px; 
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
 
   .card-head  { padding: 14px 16px; }
 
@@ -879,12 +885,13 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
   /* Remove qualquer padding inline que possa atrapalhar */
 
   .tbl-wrap {
-
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
     overflow-x: auto !important;
-
     -webkit-overflow-scrolling: touch !important;
-
-    padding: 0 !important;
+    margin: 0 !important; 
+    padding-bottom: 10px !important;
 
   }
 
@@ -896,7 +903,7 @@ td { padding:13px 20px; font-size:13.5px; vertical-align:middle; }
 
     width: 100% !important;
 
-    min-width: 0 !important;   /* sem min-width: permite colapso */
+    min-width: 650px !important;   /* sem min-width: permite colapso */
 
     font-size: 12px !important;
 
