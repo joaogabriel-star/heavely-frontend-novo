@@ -185,17 +185,23 @@ export const DashboardCoord = () => {
   };
 
   // ── EVENTOS: CRIAR ─────────────────────────────────────────────
- // ── EVENTOS: CRIAR ─────────────────────────────────────────────
   const handleCriarEvento = async (e) => {
     e.preventDefault();
     try {
       const [ano, mes, dia] = eventoFormData.data.split('-');
       const [hora, min]     = eventoFormData.horario.split(':');
       
-      const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00`;
+      // 1. Criamos a data no fuso horário local do navegador (Brasil)
+      const dataInicioLocal = new Date(ano, mes - 1, dia, hora, min);
+      
+      // 2. Convertemos para o Padrão Global (UTC) para enviar ao C#
+      // O React vai transformar 14:00 do Brasil em 17:00Z (UTC) automaticamente
+      const dataInicioExata = dataInicioLocal.toISOString(); 
+      
       const duracao         = parseInt(eventoFormData.duracao) || 1;
-      const horaFim         = parseInt(hora) + duracao;
-      const dataFimExata    = `${ano}-${mes}-${dia}T${horaFim.toString().padStart(2,'0')}:${min}:00`;
+      const dataFimLocal    = new Date(ano, mes - 1, dia, parseInt(hora) + duracao, min);
+      const dataFimExata    = dataFimLocal.toISOString();
+      
       const vagas           = parseInt(eventoFormData.vagas) || 0;
       
       const dto = {
@@ -209,9 +215,6 @@ export const DashboardCoord = () => {
       };
       
       await eventoService.criarEvento(dto);
-
-      // A MÁGICA ESTÁ AQUI 👇
-      // Igual ao botão de Editar, recarregamos tudo do C# para os relógios ficarem sincronizados
       await carregarDadosIniciais();
 
       setIsModalOpen(false);
