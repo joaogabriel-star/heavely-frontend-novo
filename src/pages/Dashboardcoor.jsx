@@ -215,6 +215,7 @@ export const DashboardCoord = () => {
       };
       
       await eventoService.criarEvento(dto);
+
       await carregarDadosIniciais();
 
       setIsModalOpen(false);
