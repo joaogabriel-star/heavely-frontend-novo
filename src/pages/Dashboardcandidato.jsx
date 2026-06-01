@@ -7,11 +7,9 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 
 export const DashboardCandidato = () => {
 
-  // ─── 1. NAVEGAÇÃO ────────────────────────────────────────────
   const [activeTab,    setActiveTab]    = useState('provas');
   const [activeSubTab, setActiveSubTab] = useState('comVagas');
 
-  // ─── 2. MODAIS E DETALHES ────────────────────────────────────
   const [provaSelecionada,        setProvaSelecionada]        = useState(null);
   const [candidaturaEmDetalhe,    setCandidaturaEmDetalhe]    = useState(null);
   const [candidaturaParaCancelar, setCandidaturaParaCancelar] = useState(null);
@@ -19,10 +17,8 @@ export const DashboardCandidato = () => {
   const [provaParaRelatar,        setProvaParaRelatar]        = useState(null);
   const [relatoForm,              setRelatoForm]              = useState({ tipo: '', descricao: '' });
 
-  // ─── 3. DADOS DO USUÁRIO ─────────────────────────────────────
   const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}');
-  
-  const nomeLogado   = usuarioLocal?.nome || localStorage.getItem('nomeUsuario')   || 'João Santos';
+  const nomeLogado   = usuarioLocal?.nome  || localStorage.getItem('nomeUsuario')   || 'João Santos';
   const perfilLogado = usuarioLocal?.tipoUsuario || localStorage.getItem('perfilUsuario') || 'Ledor';
   const emailLogado  = usuarioLocal?.email || localStorage.getItem('emailUsuario')  || 'joao@email.com';
 
@@ -30,23 +26,20 @@ export const DashboardCandidato = () => {
     ? nomeLogado.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     : 'JS';
 
-  // ─── 4. LISTAS DE DADOS ──────────────────────────────────────
   const [provasDisponiveis,  setProvasDisponiveis]  = useState([]);
   const [provasEmReserva,    setProvasEmReserva]    = useState([]);
   const [totalVagasLivres,   setTotalVagasLivres]   = useState(0);
   const [minhasCandidaturas, setMinhasCandidaturas] = useState([]);
   const [provasAplicadas,    setProvasAplicadas]    = useState([]);
 
-  // ─── 5. PERFIL ───────────────────────────────────────────────
   const [perfilFormData, setPerfilFormData] = useState({
     nome: nomeLogado, email: emailLogado,
     cpf: '', celular: '', chavePix: '', bancoNome: '',
     novaSenha: '', confirmarSenha: ''
   });
 
-  // ─── 6. PONTO ────────────────────────────────────────────────
-  const [horaAtual,        setHoraAtual]       = useState(new Date());
-  const [statusPonto,      setStatusPonto]     = useState('entrada');
+  const [horaAtual,       setHoraAtual]       = useState(new Date());
+  const [statusPonto,     setStatusPonto]     = useState('entrada');
   const [registrosDeHoje, setRegistrosDeHoje] = useState([]);
   const [scaneando,       setScaneando]       = useState(false);
 
@@ -55,14 +48,11 @@ export const DashboardCandidato = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // ─── HELPER: formata hora de string ISO ──────────────────────
   const formatarHora = (dataString) => {
     if (!dataString) return '--:--';
     try {
       const dataCorrigida = dataString.endsWith('Z') ? dataString : dataString + 'Z';
-      return new Date(dataCorrigida).toLocaleTimeString('pt-BR', {
-        hour: '2-digit', minute: '2-digit'
-      });
+      return new Date(dataCorrigida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     } catch { return '--:--'; }
   };
 
@@ -73,7 +63,6 @@ export const DashboardCandidato = () => {
     return f.charAt(0).toUpperCase() + f.slice(1);
   };
 
-  // ─── HELPER: verifica se data é hoje ─────────────────────────
   const ehHoje = (data) => {
     if (!data) return false;
     const hoje = new Date();
@@ -82,7 +71,7 @@ export const DashboardCandidato = () => {
            data.getFullYear() === hoje.getFullYear();
   };
 
-  // ─── 7. CARREGAR EVENTOS ─────────────────────────────────────
+  // ─── CARREGAR EVENTOS ─────────────────────────────────────────
   const carregarEventos = async () => {
     try {
       const dadosEventos = await eventoService.listarEventos();
@@ -103,36 +92,31 @@ export const DashboardCandidato = () => {
         if (perfilLogado === 'Ledor' && vagasLedor <= 0 && vagasFiscal <= 0) return;
 
         let papelConcorrencia = perfilLogado;
-        if (perfilLogado === 'Ledor' && vagasLedor === 0 && vagasFiscal > 0) {
-            papelConcorrencia = 'Fiscal';
-        }
+        if (perfilLogado === 'Ledor' && vagasLedor === 0 && vagasFiscal > 0) papelConcorrencia = 'Fiscal';
 
         let vagasTotaisParaMim = 0;
         let vagasDisponiveisParaMim = 0;
 
         if (papelConcorrencia === 'Ledor') {
-            vagasTotaisParaMim = vagasLedor;
-            vagasDisponiveisParaMim = Math.max(0, e.vagasLedorDisponiveis !== undefined && e.vagasLedorDisponiveis !== null ? e.vagasLedorDisponiveis : vagasLedor);
+          vagasTotaisParaMim = vagasLedor;
+          vagasDisponiveisParaMim = Math.max(0, e.vagasLedorDisponiveis !== undefined && e.vagasLedorDisponiveis !== null ? e.vagasLedorDisponiveis : vagasLedor);
         } else {
-            vagasTotaisParaMim = vagasFiscal;
-            vagasDisponiveisParaMim = Math.max(0, e.vagasFiscalDisponiveis !== undefined && e.vagasFiscalDisponiveis !== null ? e.vagasFiscalDisponiveis : vagasFiscal);
+          vagasTotaisParaMim = vagasFiscal;
+          vagasDisponiveisParaMim = Math.max(0, e.vagasFiscalDisponiveis !== undefined && e.vagasFiscalDisponiveis !== null ? e.vagasFiscalDisponiveis : vagasFiscal);
         }
 
         const vagasPreenchidasParaMim = vagasTotaisParaMim - vagasDisponiveisParaMim;
         const temVaga = vagasDisponiveisParaMim > 0;
-
         if (temVaga) vagasLivres += vagasDisponiveisParaMim;
 
         const dia  = dataDaProva.getDate();
         const mes  = dataDaProva.toLocaleDateString('pt-BR', { month: 'long' });
         const hora = dataDaProva.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-        const titulo = e.nomeProva || e.tituloProva || 'Sem título';
-
         const provaFormatada = {
-          id: e.idEvento, 
-          titulo,
-          funcaoInscricao: papelConcorrencia, 
+          id: e.idEvento,
+          titulo: e.nomeProva || e.tituloProva || 'Sem título',
+          funcaoInscricao: papelConcorrencia,
           detalhes: `Vaga para: ${papelConcorrencia} · ${e.serie || 'HIS'}`,
           data: `${dia} de ${mes}, ${hora}`,
           vagasTotais: vagasTotaisParaMim,
@@ -155,7 +139,7 @@ export const DashboardCandidato = () => {
     }
   };
 
-  // ─── 8. CARREGAR CANDIDATURAS (BLINDADO) ─────────────────────
+  // ─── CARREGAR CANDIDATURAS ────────────────────────────────────
   const carregarMinhasCandidaturas = async () => {
     try {
       const [respostaAlocacoes, dadosEventos] = await Promise.all([
@@ -174,8 +158,8 @@ export const DashboardCandidato = () => {
 
         const checkIn  = alocacao.checkInTime  || alocacao.CheckInTime  || null;
         const checkOut = alocacao.checkOutTime || alocacao.CheckOutTime || null;
+        const horas    = Number(alocacao.horasTrabalhadas ?? alocacao.HorasTrabalhadas ?? 0);
 
-        const horas = Number(alocacao.horasTrabalhadas ?? alocacao.HorasTrabalhadas ?? 0);
         const evento = dadosEventos.find(ev => Number(ev.idEvento) === Number(idEvento));
 
         let dataFormatada = 'Data não informada';
@@ -189,55 +173,45 @@ export const DashboardCandidato = () => {
           }
         }
 
-        // Descobre o status correto a mostrar (Capturando o "Pago")
         let statusExibicao = 'Confirmado';
-        if (statusDB.toLowerCase() === 'pago') statusExibicao = 'Pago 💰';
-        else if (checkOut) statusExibicao = 'Concluída';
-        else if (checkIn) statusExibicao = 'Em Andamento';
+        if (statusDB.toLowerCase() === 'pago')       statusExibicao = 'Pago 💰';
+        else if (checkOut)                           statusExibicao = 'Concluída';
+        else if (checkIn)                            statusExibicao = 'Em Andamento';
 
         const provaEstruturada = {
-          id:              idEvento,
-          titulo:          evento?.nomeProva || evento?.tituloProva || 'Prova sem título',
-          data:            dataFormatada,
+          id:               idEvento,
+          titulo:           evento?.nomeProva || evento?.tituloProva || 'Prova sem título',
+          data:             dataFormatada,
           dataPura,
-          serie:           evento?.serie || 'HIS',
-          funcao:          papelEvento,
-          status:          statusExibicao,
-          sala:            alocacao.salaDesignada || alocacao.SalaDesignada || '',
-          observacoes:     alocacao.observacoes   || alocacao.Observacoes   || '',
-          entrada:         formatarHora(checkIn),
-          saida:           formatarHora(checkOut),
+          serie:            evento?.serie || 'HIS',
+          funcao:           papelEvento,
+          status:           statusExibicao,
+          sala:             alocacao.salaDesignada || alocacao.SalaDesignada || '',
+          observacoes:      alocacao.observacoes   || alocacao.Observacoes   || '',
+          entrada:          formatarHora(checkIn),
+          saida:            formatarHora(checkOut),
           horasTrabalhadas: horas,
         };
 
         const agora = new Date();
         const eventoJaPassou = dataPura && dataPura < agora;
 
-        // SELETOR BLINDADO: Impede sumiços!
         if (statusDB.toLowerCase() === 'cancelado') {
-          // Ignora totalmente (Segurança extra caso o Back-end envie cancelados)
+          // Ignora
         } else if (checkOut || statusDB.toLowerCase() === 'pago') {
-          // Fez checkout ou já foi pago -> Vai pro Histórico (Aplicadas)
           historico.push(provaEstruturada);
         } else if (checkIn) {
-          // Fez checkin mas NÃO fez checkout -> Fica pendente
           pendentes.push(provaEstruturada);
-
-          // RESTAURA estado do ponto se já bateu entrada hoje
-          if (dataPura && ehHoje(dataPura)) {
-            if (registrosRestaurados.length === 0) {
-              registrosRestaurados.push({
-                tipo:   'entrada',
-                hora:   formatarHora(checkIn),
-                status: '✅ Entrada registrada (restaurada do banco)',
-              });
-            }
+          if (dataPura && ehHoje(dataPura) && registrosRestaurados.length === 0) {
+            registrosRestaurados.push({
+              tipo:   'entrada',
+              hora:   formatarHora(checkIn),
+              status: '✅ Entrada registrada (restaurada do banco)',
+            });
           }
         } else if (!eventoJaPassou) {
-          // Não bateu ponto, mas a prova ainda vai acontecer -> Fica Pendente
           pendentes.push(provaEstruturada);
         } else {
-          // Data já passou e NUNCA bateu ponto -> Vai pro Histórico como "Faltou" para não sumir do ar!
           provaEstruturada.status = 'Ausente / Sem Ponto';
           historico.push(provaEstruturada);
         }
@@ -250,7 +224,6 @@ export const DashboardCandidato = () => {
         setRegistrosDeHoje(registrosRestaurados);
         setStatusPonto('saida');
       }
-
     } catch (error) {
       console.error('Erro ao buscar candidaturas:', error);
     }
@@ -258,17 +231,12 @@ export const DashboardCandidato = () => {
 
   useEffect(() => {
     carregarEventos();
-    carregarMinhasCandidaturas(); // MOVIDO PARA CIMA: Agora sim carrega ao abrir a página!
-
-    const radarDeProvas = setInterval(() => {
-      carregarEventos();
-    }, 30000);
-
+    carregarMinhasCandidaturas();
+    const radarDeProvas = setInterval(() => carregarEventos(), 30000);
     return () => clearInterval(radarDeProvas);
   }, []);
-  
 
-  // ─── 9. FINANCEIRO ───────────────────────────────────────────
+  // ─── FINANCEIRO ───────────────────────────────────────────────
   const valorFixoHora         = 37;
   const totalHorasHistorico   = provasAplicadas.reduce((acc, p) => acc + (p.horasTrabalhadas || 0), 0);
   const totalReceberHistorico = totalHorasHistorico * valorFixoHora;
@@ -286,82 +254,54 @@ export const DashboardCandidato = () => {
   const formatarMoeda = (valor) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
-  // ─── 10. ID DO EVENTO DE HOJE ────────────────────────────────
+  // ─── PONTO ────────────────────────────────────────────────────
   const provaEmAndamento = minhasCandidaturas.find(c => c.entrada !== '--:--' && c.saida === '--:--');
-  const provaDeHoje = minhasCandidaturas.find(c => c.dataPura && ehHoje(c.dataPura));
-  const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
+  const provaDeHoje      = minhasCandidaturas.find(c => c.dataPura && ehHoje(c.dataPura));
+  const idProvaAtiva     = provaEmAndamento?.id || provaDeHoje?.id || null;
 
-  // ─── 11. BATER PONTO ─────────────────────────────────────────
   const handleRegistrarPonto = async () => {
     if (!idProvaAtiva) {
       const primeiraConfirmada = minhasCandidaturas.find(c => c.status === 'Confirmado');
-      if (!primeiraConfirmada) {
-        alert('Você não possui nenhuma prova confirmada para hoje.');
-        return;
-      }
+      if (!primeiraConfirmada) { alert('Você não possui nenhuma prova confirmada para hoje.'); return; }
     }
-
     const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
-
     try {
       if (statusPonto === 'entrada') {
         await api.put(`/alocacoes/${idParaUsar}/checkin`);
-
-        setRegistrosDeHoje(prev => [...prev, {
-          tipo:   'entrada',
-          hora:   horaAtual.toLocaleTimeString('pt-BR'),
-          status: '✅ Entrada salva no banco de dados',
-        }]);
+        setRegistrosDeHoje(prev => [...prev, { tipo: 'entrada', hora: horaAtual.toLocaleTimeString('pt-BR'), status: '✅ Entrada salva no banco de dados' }]);
         setStatusPonto('saida');
         carregarMinhasCandidaturas();
       } else {
         setScaneando(true);
       }
     } catch (error) {
-      console.error('Erro checkin:', error.response?.data);
-      const msg = error.response?.data?.mensagem
-        || error.response?.data?.message
-        || 'Erro ao registrar entrada. Você já registrou hoje?';
+      const msg = error.response?.data?.mensagem || error.response?.data?.message || 'Erro ao registrar entrada. Você já registrou hoje?';
       alert(msg);
     }
   };
 
   const confirmarScaneamentoQRCode = async () => {
     const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
-
     try {
       await api.put(`/alocacoes/${idParaUsar}/checkout`);
-
-      setRegistrosDeHoje(prev => [...prev, {
-        tipo:   'saida',
-        hora:   horaAtual.toLocaleTimeString('pt-BR'),
-        status: '✅ Saída salva — horas calculadas pelo sistema',
-      }]);
+      setRegistrosDeHoje(prev => [...prev, { tipo: 'saida', hora: horaAtual.toLocaleTimeString('pt-BR'), status: '✅ Saída salva — horas calculadas pelo sistema' }]);
       setScaneando(false);
       setStatusPonto('concluido');
-
       await carregarMinhasCandidaturas();
     } catch (error) {
-      console.error('Erro checkout:', error.response?.data);
       const msg = error.response?.data?.mensagem || 'Erro ao registrar saída.';
       alert(msg);
     }
   };
 
-  // ─── 12. PERFIL ──────────────────────────────────────────────
-  const handlePerfilChange = (e) => {
-    const { name, value } = e.target;
-    setPerfilFormData(prev => ({ ...prev, [name]: value }));
-  };
-
+  // ─── PERFIL ───────────────────────────────────────────────────
+  const handlePerfilChange = (e) => { const { name, value } = e.target; setPerfilFormData(prev => ({ ...prev, [name]: value })); };
   const handleSalvarPerfil = () => {
-    if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
-      alert('As senhas não coincidem!'); return;
-    }
+    if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) { alert('As senhas não coincidem!'); return; }
     alert('Perfil atualizado com sucesso!');
   };
 
-  // ─── 13. CANDIDATURA ─────────────────────────────────────────
+  // ─── CANDIDATURA ─────────────────────────────────────────────
   const confirmarCandidatura = async () => {
     try {
       await eventoService.inscreverEmEvento(provaSelecionada.id, { PapelEvento: provaSelecionada.funcaoInscricao });
@@ -369,11 +309,11 @@ export const DashboardCandidato = () => {
         id: provaSelecionada.id, titulo: provaSelecionada.titulo,
         data: provaSelecionada.data, dataPura: null,
         serie: provaSelecionada.serie || 'HIS',
-        funcao: provaSelecionada.funcaoInscricao , 
+        funcao: provaSelecionada.funcaoInscricao,
         status: 'Confirmado',
       };
       setMinhasCandidaturas(prev => [...prev, nova]);
-      carregarEventos(); 
+      carregarEventos();
       alert('Inscrição confirmada com sucesso!');
       setProvaSelecionada(null);
       setActiveTab('candidaturas');
@@ -386,35 +326,38 @@ export const DashboardCandidato = () => {
     }
   };
 
-  // ─── 14. CANCELAMENTO ────────────────────────────────────────
+  // ─── CANCELAMENTO ────────────────────────────────────────────
   const abrirModalCancelamento = (candidatura) => {
     setCandidaturaParaCancelar(candidatura);
     setMotivoCancelamento('');
   };
 
+  // ✅ FIX 1: await carregarEventos() para atualizar barra de ocupação
   const efetivarCancelamento = async () => {
-    if (!motivoCancelamento) { 
-      alert('Selecione um motivo.'); 
-      return; 
-    }
+    if (!motivoCancelamento) { alert('Selecione um motivo.'); return; }
 
     try {
       await api.put(`/alocacoes/evento/${candidaturaParaCancelar.id}/cancelar`, {
         motivo: motivoCancelamento
       });
 
+      // Remove da lista local imediatamente
       setMinhasCandidaturas(prev => prev.filter(c => c.id !== candidaturaParaCancelar.id));
-      alert(`Inscrição cancelada: ${motivoCancelamento}`);
       setCandidaturaParaCancelar(null);
-      carregarEventos();
-      
+
+      alert('Inscrição cancelada com sucesso!');
+
+      // ✅ AWAIT garante que a re-busca completa antes de atualizar a UI
+      // Isso corrige a barra de ocupação não liberando a vaga
+      await carregarEventos();
+
     } catch (error) {
       console.error('Erro detalhado ao cancelar:', error.response?.data || error.message);
       alert('Erro ao cancelar inscrição. Verifique o console (F12).');
     }
   };
 
-  // ─── 15. RELATO ──────────────────────────────────────────────
+  // ─── RELATO ───────────────────────────────────────────────────
   const abrirModalRelato  = (prova) => { setProvaParaRelatar(prova); setRelatoForm({ tipo: '', descricao: '' }); };
   const fecharModalRelato = ()       => setProvaParaRelatar(null);
   const enviarRelato = async () => {
@@ -423,9 +366,6 @@ export const DashboardCandidato = () => {
     fecharModalRelato();
   };
 
-  // ═══════════════════════════════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════════════════════════════
   return (
     <div className="dash-candidato-container">
 
@@ -462,55 +402,38 @@ export const DashboardCandidato = () => {
         <button className={`tab ${activeTab === 'aplicadas' ? 'active' : ''}`} onClick={() => { setActiveTab('aplicadas'); setCandidaturaEmDetalhe(null); }}>
           <div className="icon-container">
             <FileCheck size={24} strokeWidth={1.5} />
-            {provasAplicadas.length > 0 && (
-              <span className="badge-flutuante" style={{ backgroundColor: '#3b82f6' }}>{provasAplicadas.length}</span>
-            )}
+            {provasAplicadas.length > 0 && <span className="badge-flutuante" style={{ backgroundColor: '#3b82f6' }}>{provasAplicadas.length}</span>}
           </div>
           <span className="tab-label">Aplicadas</span>
         </button>
-
         <button className={`tab ${activeTab === 'candidaturas' ? 'active' : ''}`} onClick={() => { setActiveTab('candidaturas'); setCandidaturaEmDetalhe(null); }}>
           <div className="icon-container">
             <FileText size={24} strokeWidth={1.5} />
-            {minhasCandidaturas.length > 0 && (
-              <span className="badge-flutuante" style={{ backgroundColor: '#16a34a' }}>{minhasCandidaturas.length}</span>
-            )}
+            {minhasCandidaturas.length > 0 && <span className="badge-flutuante" style={{ backgroundColor: '#16a34a' }}>{minhasCandidaturas.length}</span>}
           </div>
           <span className="tab-label">Candidaturas</span>
         </button>
-
         <button className={`tab ${activeTab === 'provas' ? 'active' : ''}`} onClick={() => { setActiveTab('provas'); setCandidaturaEmDetalhe(null); }}>
-          <div className="icon-container">
-            <Search size={24} strokeWidth={1.5} />
-          </div>
+          <div className="icon-container"><Search size={24} strokeWidth={1.5} /></div>
           <span className="tab-label">Disponíveis</span>
         </button>
-
         <button className={`tab ${activeTab === 'ganhos' ? 'active' : ''}`} onClick={() => { setActiveTab('ganhos'); setCandidaturaEmDetalhe(null); }}>
-          <div className="icon-container">
-            <Wallet size={24} strokeWidth={1.5} />
-          </div>
+          <div className="icon-container"><Wallet size={24} strokeWidth={1.5} /></div>
           <span className="tab-label">Ganhos</span>
         </button>
-
         <button className={`tab ${activeTab === 'ponto' ? 'active' : ''}`} onClick={() => { setActiveTab('ponto'); setCandidaturaEmDetalhe(null); setScaneando(false); }}>
-          <div className="icon-container">
-            <Clock size={24} strokeWidth={1.5} />
-          </div>
+          <div className="icon-container"><Clock size={24} strokeWidth={1.5} /></div>
           <span className="tab-label">Ponto</span>
         </button>
-
         <button className={`tab ${activeTab === 'perfil' ? 'active' : ''}`} style={{ marginLeft: 'auto' }} onClick={() => setActiveTab('perfil')}>
-          <div className="icon-container">
-            <User size={24} strokeWidth={1.5} />
-          </div>
+          <div className="icon-container"><User size={24} strokeWidth={1.5} /></div>
           <span className="tab-label">Perfil</span>
         </button>
       </div>
 
       <main className="page">
 
-        {/* ── PROVAS DISPONÍVEIS ─────────────────────────────── */}
+        {/* ── PROVAS DISPONÍVEIS ──────────────────────────────────── */}
         {activeTab === 'provas' && (
           <div className="panel active">
             <div className="page-header">
@@ -538,7 +461,7 @@ export const DashboardCandidato = () => {
                 <div className="stat-ico" style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px', fontSize: '24px' }}>⏳</div>
                 <div>
                   <div className="stat-lbl" style={{ color: '#64748b', fontSize: '13px', fontWeight: '600' }}>Lista de Reserva</div>
-                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', textAlign: 'center',color: '#0f172a' }}>{provasEmReserva.length}</div>
+                  <div className="stat-val" style={{ fontSize: '24px', fontWeight: '700', textAlign: 'center', color: '#0f172a' }}>{provasEmReserva.length}</div>
                 </div>
               </div>
             </div>
@@ -548,8 +471,7 @@ export const DashboardCandidato = () => {
                 <button style={{ background: 'none', border: 'none', padding: '12px 0', fontSize: '14px', fontWeight: '600', color: activeSubTab === 'reserva' ? '#2563eb' : '#64748b', borderBottom: activeSubTab === 'reserva' ? '2px solid #2563eb' : '2px solid transparent', cursor: 'pointer' }} onClick={() => setActiveSubTab('reserva')}>👥 Vagas Preenchidas (Reserva)</button>
               </div>
               <div className="tbl-wrap" style={{ padding: '20px 0 0 0' }}>
-                
-                {/* ─── ABA: COM VAGAS ─── */}
+
                 {activeSubTab === 'comVagas' && (
                   provasDisponiveis.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -559,7 +481,6 @@ export const DashboardCandidato = () => {
                     </div>
                   ) : (
                     <>
-                      {/* TABELA DESKTOP */}
                       <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead><tr>
                           <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>PROVA</th>
@@ -596,25 +517,19 @@ export const DashboardCandidato = () => {
                           ))}
                         </tbody>
                       </table>
-
-                      {/* CARDS MOBILE */}
                       <div className="mobile-cards-container">
                         {provasDisponiveis.map(prova => {
                           const porcentagem = prova.vagasTotais > 0 ? (prova.vagasPreenchidas / prova.vagasTotais) * 100 : 0;
                           return (
                             <div className="prova-mobile-card" key={prova.id}>
                               <div className="prova-mobile-top">
-                                <div className="prova-mobile-nome">{prova.titulo}
-                                  <div className="prova-mobile-sub">{prova.detalhes}</div>
-                                </div>
+                                <div className="prova-mobile-nome">{prova.titulo}<div className="prova-mobile-sub">{prova.detalhes}</div></div>
                                 <span className="status-pill status-aberta">{prova.status}</span>
                               </div>
                               <div className="prova-mobile-data">📅 {prova.data} • {prova.valor}</div>
                               <div className="prova-mobile-bottom">
                                 <div className="prova-mobile-progress">
-                                  <div className="prova-mobile-bar">
-                                    <div className="prova-mobile-bar-fill" style={{ width: `${porcentagem}%` }}></div>
-                                  </div>
+                                  <div className="prova-mobile-bar"><div className="prova-mobile-bar-fill" style={{ width: `${porcentagem}%` }}></div></div>
                                   <span className="prova-mobile-vagas">{prova.vagasPreenchidas}/{prova.vagasTotais}</span>
                                 </div>
                                 <button onClick={() => setProvaSelecionada(prova)} className="btn-candidatar-mobile">Candidatar-se →</button>
@@ -627,7 +542,6 @@ export const DashboardCandidato = () => {
                   )
                 )}
 
-                {/* ─── ABA: RESERVA ─── */}
                 {activeSubTab === 'reserva' && (
                   provasEmReserva.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -636,7 +550,6 @@ export const DashboardCandidato = () => {
                     </div>
                   ) : (
                     <>
-                      {/* TABELA DESKTOP */}
                       <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead><tr>
                           <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', color: '#64748b' }}>PROVA</th>
@@ -667,15 +580,11 @@ export const DashboardCandidato = () => {
                           ))}
                         </tbody>
                       </table>
-
-                      {/* CARDS MOBILE */}
                       <div className="mobile-cards-container">
                         {provasEmReserva.map(prova => (
                           <div className="prova-mobile-card" key={prova.id}>
                             <div className="prova-mobile-top">
-                              <div className="prova-mobile-nome">{prova.titulo}
-                                <div className="prova-mobile-sub">{prova.detalhes}</div>
-                              </div>
+                              <div className="prova-mobile-nome">{prova.titulo}<div className="prova-mobile-sub">{prova.detalhes}</div></div>
                               <span className="status-pill status-reserva">{prova.status}</span>
                             </div>
                             <div className="prova-mobile-data">📅 {prova.data} • {prova.valor}</div>
@@ -698,7 +607,7 @@ export const DashboardCandidato = () => {
           </div>
         )}
 
-        {/* ── MINHAS CANDIDATURAS ────────────────────────────── */}
+        {/* ── MINHAS CANDIDATURAS ─────────────────────────────────── */}
         {activeTab === 'candidaturas' && (
           <div className="panel active">
             {!candidaturaEmDetalhe ? (
@@ -728,9 +637,7 @@ export const DashboardCandidato = () => {
                               <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>{cand.funcao}</span>
                               <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>{cand.status}</span>
                               {cand.entrada && cand.entrada !== '--:--' && (
-                                <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', fontSize: '11px' }}>
-                                  🕐 Entrada: {cand.entrada}
-                                </span>
+                                <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', fontSize: '11px' }}>🕐 Entrada: {cand.entrada}</span>
                               )}
                             </div>
                           </div>
@@ -774,9 +681,7 @@ export const DashboardCandidato = () => {
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', marginBottom: '20px' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '12px' }}>🏠 Sala Designada</h3>
                   {candidaturaEmDetalhe.sala ? (
-                    <div style={{ padding: '12px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', color: '#1e40af', fontWeight: '600' }}>
-                      {candidaturaEmDetalhe.sala}
-                    </div>
+                    <div style={{ padding: '12px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', color: '#1e40af', fontWeight: '600' }}>{candidaturaEmDetalhe.sala}</div>
                   ) : (
                     <div style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '13.5px' }}>⏳ Aguardando designação pela coordenação…</div>
                   )}
@@ -784,9 +689,7 @@ export const DashboardCandidato = () => {
                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '12px' }}>📄 Observações da Coordenação</h3>
                   {candidaturaEmDetalhe.observacoes ? (
-                    <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', color: '#334155', fontSize: '14px', lineHeight: '1.6' }}>
-                      {candidaturaEmDetalhe.observacoes}
-                    </div>
+                    <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', color: '#334155', fontSize: '14px', lineHeight: '1.6' }}>{candidaturaEmDetalhe.observacoes}</div>
                   ) : (
                     <div style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '13.5px' }}>Nenhuma observação registrada.</div>
                   )}
@@ -796,7 +699,7 @@ export const DashboardCandidato = () => {
           </div>
         )}
 
-        {/* ── PROVAS APLICADAS ───────────────────────────────── */}
+        {/* ── PROVAS APLICADAS ──────────────────────────────────── */}
         {activeTab === 'aplicadas' && (
           <div className="panel active">
             <div className="page-header">
@@ -812,7 +715,6 @@ export const DashboardCandidato = () => {
                 </div>
               ) : (
                 <>
-                  {/* TABELA DESKTOP */}
                   <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -836,20 +738,12 @@ export const DashboardCandidato = () => {
                           <td style={{ padding: '16px 24px', color: '#334155', fontSize: '14px' }}>{prova.data}</td>
                           <td style={{ padding: '16px 24px', color: '#16a34a', fontSize: '14px', fontWeight: '600' }}>{prova.entrada}</td>
                           <td style={{ padding: '16px 24px', color: '#ef4444', fontSize: '14px', fontWeight: '600' }}>{prova.saida}</td>
-                          <td style={{ padding: '16px 24px', color: '#0f172a', fontSize: '14px', fontWeight: '700' }}>
-                            {prova.horasTrabalhadas > 0 ? `${prova.horasTrabalhadas.toFixed(1)}h` : '--'}
-                          </td>
+                          <td style={{ padding: '16px 24px', color: '#0f172a', fontSize: '14px', fontWeight: '700' }}>{prova.horasTrabalhadas > 0 ? `${prova.horasTrabalhadas.toFixed(1)}h` : '--'}</td>
                           <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                            <span style={{ display: 'block', background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>
-                              {prova.funcao}
-                            </span>
-                            <span style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: prova.status === 'Pago 💰' ? '#16a34a' : '#64748b' }}>
-                              {prova.status}
-                            </span>
+                            <span style={{ display: 'block', background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>{prova.funcao}</span>
+                            <span style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: prova.status === 'Pago 💰' ? '#16a34a' : '#64748b' }}>{prova.status}</span>
                           </td>
-                          <td style={{ padding: '16px 24px', color: '#16a34a', fontSize: '14px', fontWeight: '700' }}>
-                            {prova.horasTrabalhadas > 0 ? formatarMoeda(prova.horasTrabalhadas * valorFixoHora) : '--'}
-                          </td>
+                          <td style={{ padding: '16px 24px', color: '#16a34a', fontSize: '14px', fontWeight: '700' }}>{prova.horasTrabalhadas > 0 ? formatarMoeda(prova.horasTrabalhadas * valorFixoHora) : '--'}</td>
                           <td style={{ padding: '16px 24px', textAlign: 'center' }}>
                             <button onClick={() => abrirModalRelato(prova)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Relatar</button>
                           </td>
@@ -857,47 +751,36 @@ export const DashboardCandidato = () => {
                       ))}
                     </tbody>
                   </table>
-
-                  {/* CARDS MOBILE */}
                   <div className="mobile-cards-container">
                     {provasAplicadas.map(prova => (
                       <div className="prova-mobile-card" key={prova.id} style={{ marginBottom: '16px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
-                        <div className="prova-mobile-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                          <div className="prova-mobile-nome">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                          <div>
                             <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '15px' }}>{prova.titulo}</div>
-                            <div className="prova-mobile-sub" style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{prova.serie}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{prova.serie}</div>
                           </div>
-                          <span style={{ background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>
-                            {prova.funcao}
-                          </span>
+                          <span style={{ background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>{prova.funcao}</span>
                         </div>
-                        <div className="prova-mobile-data" style={{ fontSize: '13px', color: '#475569', marginBottom: '12px' }}>
+                        <div style={{ fontSize: '13px', color: '#475569', marginBottom: '12px' }}>
                           📅 {prova.data}
                           <strong style={{ color: prova.status === 'Pago 💰' ? '#16a34a' : '#64748b', display: 'block', marginTop: '4px' }}>Status: {prova.status}</strong>
                         </div>
-                        
-                        <div className="prova-mobile-bottom" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', background: '#f8fafc', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '13px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                             <span>Entrada: <strong style={{ color: '#16a34a' }}>{prova.entrada}</strong></span>
                             <span>Saída: <strong style={{ color: '#ef4444' }}>{prova.saida}</strong></span>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1' }}>
-                            <span style={{ fontSize: '13px', color: '#475569' }}>
-                              Duração: <strong style={{ color: '#0f172a' }}>{prova.horasTrabalhadas > 0 ? `${prova.horasTrabalhadas.toFixed(1)}h` : '--'}</strong>
-                            </span>
-                            <span style={{ fontSize: '15px', fontWeight: '700', color: '#16a34a' }}>
-                              {prova.horasTrabalhadas > 0 ? formatarMoeda(prova.horasTrabalhadas * valorFixoHora) : '--'}
-                            </span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1' }}>
+                            <span style={{ fontSize: '13px', color: '#475569' }}>Duração: <strong>{prova.horasTrabalhadas > 0 ? `${prova.horasTrabalhadas.toFixed(1)}h` : '--'}</strong></span>
+                            <span style={{ fontSize: '15px', fontWeight: '700', color: '#16a34a' }}>{prova.horasTrabalhadas > 0 ? formatarMoeda(prova.horasTrabalhadas * valorFixoHora) : '--'}</span>
                           </div>
                         </div>
                         <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                           <button onClick={() => abrirModalRelato(prova)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}>Relatar Ocorrência</button>
+                          <button onClick={() => abrirModalRelato(prova)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}>Relatar Ocorrência</button>
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  {/* RODAPÉ DE TOTAIS */}
                   <div style={{ background: '#f8fafc', padding: '20px 24px', display: 'flex', justifyContent: 'flex-end', gap: '20px', flexWrap: 'wrap', borderTop: '1px solid #e5e7eb' }}>
                     <div style={{ fontSize: '14px', color: '#475569' }}>Total de horas: <strong style={{ color: '#0f172a' }}>{totalHorasHistorico.toFixed(1)}h</strong></div>
                     <div style={{ fontSize: '14px', color: '#475569' }}>Total a receber: <strong style={{ color: '#16a34a', fontSize: '16px' }}>{formatarMoeda(totalReceberHistorico)}</strong></div>
@@ -908,7 +791,7 @@ export const DashboardCandidato = () => {
           </div>
         )}
 
-        {/* ── CÁLCULO DE GANHOS ──────────────────────────────── */}
+        {/* ── CÁLCULO DE GANHOS ──────────────────────────────────── */}
         {activeTab === 'ganhos' && (
           <div className="panel active">
             <div className="page-header">
@@ -929,20 +812,14 @@ export const DashboardCandidato = () => {
             </div>
             {provasAplicadas.length > 0 && (
               <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-                <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
-                  Detalhamento por Prova
-                </div>
+                <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Detalhamento por Prova</div>
                 {provasAplicadas.map((prova, index) => (
                   <div key={prova.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 24px', borderBottom: index < provasAplicadas.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
                     <div>
                       <div style={{ fontSize: '15px', color: '#334155', fontWeight: '500' }}>{prova.titulo}</div>
-                      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-                        {prova.horasTrabalhadas > 0 ? prova.horasTrabalhadas.toFixed(1) : '0.0'}h × R$ {valorFixoHora} · {prova.data}
-                      </div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>{prova.horasTrabalhadas > 0 ? prova.horasTrabalhadas.toFixed(1) : '0.0'}h × R$ {valorFixoHora} · {prova.data}</div>
                     </div>
-                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
-                      {formatarMoeda(prova.horasTrabalhadas * valorFixoHora)}
-                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>{formatarMoeda(prova.horasTrabalhadas * valorFixoHora)}</div>
                   </div>
                 ))}
                 <div style={{ padding: '20px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
@@ -954,39 +831,29 @@ export const DashboardCandidato = () => {
           </div>
         )}
 
-        {/* ── BATER PONTO ────────────────────────────────────── */}
+        {/* ── BATER PONTO ────────────────────────────────────────── */}
         {activeTab === 'ponto' && (
           <div className="panel active">
             <div className="page-header">
               <h1 className="page-title">Bater Ponto</h1>
               <p className="page-sub">Registre sua entrada e saída no dia da prova.</p>
             </div>
-
-            {/* Aviso se não tem prova hoje */}
             {!idProvaAtiva && minhasCandidaturas.length > 0 && (
               <div style={{ background: '#fffbeb', border: '1px solid #fde047', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', fontSize: '13px', color: '#92400e' }}>
                 ⚠️ Você não tem prova agendada para hoje. O botão usará sua candidatura mais recente para fins de teste.
               </div>
             )}
-
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '20px', gap: '24px' }}>
               <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '40px 60px', textAlign: 'center', width: '100%', maxWidth: '420px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                 {statusPonto !== 'concluido' ? (
                   <>
-                    <div style={{ fontSize: '48px', fontWeight: '800', color: '#0f172a', letterSpacing: '-1px', marginBottom: '12px' }}>
-                      {horaAtual.toLocaleTimeString('pt-BR')}
-                    </div>
-                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '32px', fontWeight: '500' }}>
-                      {formatarData(horaAtual)}
-                    </div>
-                    <button onClick={handleRegistrarPonto} disabled={scaneando}
-                      style={{ width: '100%', background: scaneando ? '#94a3b8' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', cursor: scaneando ? 'default' : 'pointer', letterSpacing: '0.5px' }}>
+                    <div style={{ fontSize: '48px', fontWeight: '800', color: '#0f172a', letterSpacing: '-1px', marginBottom: '12px' }}>{horaAtual.toLocaleTimeString('pt-BR')}</div>
+                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '32px', fontWeight: '500' }}>{formatarData(horaAtual)}</div>
+                    <button onClick={handleRegistrarPonto} disabled={scaneando} style={{ width: '100%', background: scaneando ? '#94a3b8' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', cursor: scaneando ? 'default' : 'pointer', letterSpacing: '0.5px' }}>
                       {statusPonto === 'entrada' ? 'REGISTRAR PONTO' : 'REGISTRAR SAÍDA'}
                     </button>
                     {statusPonto === 'saida' && !scaneando && (
-                      <p style={{ marginTop: '16px', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
-                        Obrigatório escanear o QR Code da coordenação.
-                      </p>
+                      <p style={{ marginTop: '16px', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>Obrigatório escanear o QR Code da coordenação.</p>
                     )}
                   </>
                 ) : (
@@ -997,49 +864,31 @@ export const DashboardCandidato = () => {
                   </div>
                 )}
               </div>
-
               <div style={{ width: '100%', maxWidth: '800px' }}>
                 {scaneando ? (
-                  <div
-                    onClick={(e) => e.stopPropagation()} 
-                    style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', textAlign: 'center' }}
-                  >
+                  <div onClick={e => e.stopPropagation()} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                       <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Escanear QR Code</h3>
-                      <button onClick={() => setScaneando(false)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
-                        [ X ] Cancelar
-                      </button>
+                      <button onClick={() => setScaneando(false)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>[ X ] Cancelar</button>
                     </div>
-
-                    {/* CAIXA DA CÂMERA BLINDADA */}
                     <div style={{ maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid #3b82f6' }}>
                       <Scanner
                         onScan={(result) => {
                           if (result && result.length > 0) {
-                            const textoLido = result[0].rawValue || result[0].text || "";
-                            
-                            if (textoLido.includes('EVENTO:')) {
-                              confirmarScaneamentoQRCode();
-                            } else {
-                              console.log("Código ignorado (não é do evento):", textoLido);
-                            }
+                            const textoLido = result[0].rawValue || result[0].text || '';
+                            if (textoLido.includes('EVENTO:')) confirmarScaneamentoQRCode();
                           }
                         }}
-                        onError={(error) => console.log("Câmera aguardando/Erro:", error?.message)}
+                        onError={(error) => console.log('Câmera aguardando:', error?.message)}
                       />
                     </div>
-                    
-                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '16px' }}>
-                      Aponte a câmera para o QR Code gerado pelo coordenador.
-                    </p>
+                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '16px' }}>Aponte a câmera para o QR Code gerado pelo coordenador.</p>
                   </div>
                 ) : (
                   <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Registros de Hoje</h3>
                     {registrosDeHoje.length === 0 ? (
-                      <div style={{ border: '1px dashed #e5e7eb', borderRadius: '8px', padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                        Nenhum ponto registrado hoje.
-                      </div>
+                      <div style={{ border: '1px dashed #e5e7eb', borderRadius: '8px', padding: '40px', textAlign: 'center', color: '#64748b' }}>Nenhum ponto registrado hoje.</div>
                     ) : (
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                         <thead>
@@ -1067,7 +916,7 @@ export const DashboardCandidato = () => {
           </div>
         )}
 
-        {/* ── MEU PERFIL ─────────────────────────────────────── */}
+        {/* ── MEU PERFIL ─────────────────────────────────────────── */}
         {activeTab === 'perfil' && (
           <div className="panel active">
             <div className="page-header">
@@ -1125,7 +974,7 @@ export const DashboardCandidato = () => {
             <h2 className="modal-title" style={{ fontSize: '20px' }}>Confirmar Candidatura</h2>
             <p className="modal-sub">{provaSelecionada.titulo} · {provaSelecionada.data}</p>
             <div style={{ background: '#eff6ff', padding: '16px', borderRadius: '8px', marginTop: '16px', border: '1px solid #bfdbfe' }}>
-              <strong style={{ display: 'block', color: '#1e40af', marginBottom: '4px' }}>Função: {perfilLogado} · {provaSelecionada.valor}</strong>
+              <strong style={{ display: 'block', color: '#1e40af', marginBottom: '4px' }}>Função: {provaSelecionada.funcaoInscricao} · {provaSelecionada.valor}</strong>
               <span style={{ color: '#1e3a8a', fontSize: '13px' }}>Ao confirmar, você constará na lista desta prova.</span>
             </div>
             <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
