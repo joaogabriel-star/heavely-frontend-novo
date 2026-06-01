@@ -951,18 +951,63 @@ const handleSalvarEdicao = async (e) => {
                     {eventos.length===0?(
                       <div style={{ textAlign:'center', padding:'48px 20px' }}><div style={{ fontSize:'36px', marginBottom:'10px' }}>📋</div><p style={{ color:'#64748b', fontSize:'14px' }}>Nenhum evento cadastrado ainda.</p></div>
                     ):(
-                      <table>
-                        <thead><tr><th>EVENTO</th><th>DATA</th><th>VAGAS</th><th>STATUS</th><th>QR CODE</th></tr></thead>
-                        <tbody>{eventos.map(ev=>(
-                          <tr key={ev.id}>
-                            <td><div style={{ fontWeight:'600', color:'#0f172a', fontSize:'14px' }}>{ev.titulo}</div><div style={{ fontSize:'12px', color:'#64748b' }}>R$ {ev.valor}/hora</div></td>
-                            <td style={{ fontSize:'13.5px', color:'#334155', fontFamily:'monospace' }}>{ev.data}</td>
-                            <td style={{ fontSize:'13.5px', color:'#334155' }}>{ev.vagasPreenchidas}/{ev.vagasTotais}</td>
-                            <td><span style={{ backgroundColor: ev.status==='Concluído'?'#d1fae5':ev.status==='Cancelado'?'#fee2e2':'#e0e7ff', color: ev.status==='Concluído'?'#065f46':ev.status==='Cancelado'?'#991b1b':'#4338ca', padding:'4px 12px', borderRadius:'9999px', fontSize:'12px', fontWeight:'500' }}>{ev.status}</span></td>
-                            <td>{ev.status==='Cancelado'?(<span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>):(<button onClick={()=>abrirQrEvento(ev)} style={{ background:'#2563eb', color:'#fff', border:'none', padding:'7px 14px', borderRadius:'8px', fontFamily:'inherit', fontSize:'12.5px', fontWeight:'600', cursor:'pointer' }}>⬛ Gerar QR Code</button>)}</td>
-                          </tr>
-                        ))}</tbody>
-                      </table>
+                      <>
+                        {/* ── TABELA DESKTOP ── */}
+                        <table className="desktop-table">
+                          <thead><tr><th>EVENTO</th><th>DATA</th><th>VAGAS</th><th>STATUS</th><th>QR CODE</th></tr></thead>
+                          <tbody>{eventos.map(ev=>(
+                            <tr key={ev.id}>
+                              <td><div style={{ fontWeight:'600', color:'#0f172a', fontSize:'14px' }}>{ev.titulo}</div><div style={{ fontSize:'12px', color:'#64748b' }}>R$ {ev.valor}/hora</div></td>
+                              <td style={{ fontSize:'13.5px', color:'#334155', fontFamily:'monospace' }}>{ev.data}</td>
+                              <td style={{ fontSize:'13.5px', color:'#334155' }}>{ev.vagasPreenchidas}/{ev.vagasTotais}</td>
+                              <td><span style={{ backgroundColor: ev.status==='Concluído'?'#d1fae5':ev.status==='Cancelado'?'#fee2e2':'#e0e7ff', color: ev.status==='Concluído'?'#065f46':ev.status==='Cancelado'?'#991b1b':'#4338ca', padding:'4px 12px', borderRadius:'9999px', fontSize:'12px', fontWeight:'500' }}>{ev.status}</span></td>
+                              <td>{ev.status==='Cancelado'?(<span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>):(<button onClick={()=>abrirQrEvento(ev)} style={{ background:'#2563eb', color:'#fff', border:'none', padding:'7px 14px', borderRadius:'8px', fontFamily:'inherit', fontSize:'12.5px', fontWeight:'600', cursor:'pointer' }}>⬛ Gerar QR Code</button>)}</td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
+
+                        {/* ── CARDS MOBILE ── */}
+                        <div className="mobile-cards-container">
+                          {eventos.map(ev => {
+                            let statusBg = '#e0e7ff';
+                            let statusColor = '#4338ca';
+                            if (ev.status === 'Concluído') { statusBg = '#d1fae5'; statusColor = '#065f46'; }
+                            if (ev.status === 'Cancelado') { statusBg = '#fee2e2'; statusColor = '#991b1b'; }
+                            
+                            const pct = ev.vagasTotais > 0 ? (ev.vagasPreenchidas / ev.vagasTotais) * 100 : 0;
+
+                            return (
+                              <div className="prova-mobile-card" key={ev.id}>
+                                <div className="prova-mobile-top">
+                                  <div className="prova-mobile-nome">
+                                    {ev.titulo}
+                                    <div className="prova-mobile-sub">R$ {ev.valor}/hora</div>
+                                  </div>
+                                  <span style={{ backgroundColor: statusBg, color: statusColor, padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>
+                                    {ev.status}
+                                  </span>
+                                </div>
+                                <div className="prova-mobile-data">📅 {ev.data}</div>
+                                <div className="prova-mobile-bottom">
+                                  <div className="prova-mobile-progress">
+                                    <div className="prova-mobile-bar">
+                                      <div className="prova-mobile-bar-fill" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#10b981' : '#3b82f6' }}></div>
+                                    </div>
+                                    <span className="prova-mobile-vagas">{ev.vagasPreenchidas}/{ev.vagasTotais} vagas</span>
+                                  </div>
+                                  {ev.status === 'Cancelado' ? (
+                                    <span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>
+                                  ) : (
+                                    <button onClick={() => abrirQrEvento(ev)} className="btn-candidatar-mobile" style={{ background: '#2563eb', color: '#fff', border: 'none' }}>
+                                      ⬛ Gerar QR Code
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
