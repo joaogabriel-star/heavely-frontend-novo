@@ -524,13 +524,9 @@ const handleSalvarEdicao = async (e) => {
                               if (activeSubTab === 'concluidos') return ev.status === 'Concluído';
                               return true;
                             }).map(ev => {
-                              const vl = ev.vagasLedor  ?? 0;
-                              const vf = ev.vagasFiscal ?? 0;
-                              const total      = vl + vf;
-                              const ledorDisp  = Math.max(0, ev.vagasLedorDisponiveis  !== undefined && ev.vagasLedorDisponiveis  !== null ? ev.vagasLedorDisponiveis  : vl);
-                              const fiscalDisp = Math.max(0, ev.vagasFiscalDisponiveis !== undefined && ev.vagasFiscalDisponiveis !== null ? ev.vagasFiscalDisponiveis : vf);
-                              const ocupacao   = (vl - ledorDisp) + (vf - fiscalDisp);
-                              const pct        = total > 0 ? (ocupacao / total) * 100 : 0;
+                              const total    = ev.vagasTotais;
+                              const ocupacao = ev.vagasPreenchidas;
+                              const pct      = total > 0 ? (ocupacao / total) * 100 : 0;
                               return (
                                 <tr key={ev.id}>
                                   <td>
@@ -576,13 +572,9 @@ const handleSalvarEdicao = async (e) => {
                             if (activeSubTab === 'concluidos') return ev.status === 'Concluído';
                             return true;
                           }).map(ev => {
-                            const vl = ev.vagasLedor  ?? 0;
-                            const vf = ev.vagasFiscal ?? 0;
-                            const total      = vl + vf;
-                            const ledorDisp  = Math.max(0, ev.vagasLedorDisponiveis  !== undefined && ev.vagasLedorDisponiveis  !== null ? ev.vagasLedorDisponiveis  : vl);
-                            const fiscalDisp = Math.max(0, ev.vagasFiscalDisponiveis !== undefined && ev.vagasFiscalDisponiveis !== null ? ev.vagasFiscalDisponiveis : vf);
-                            const ocupacao   = (vl - ledorDisp) + (vf - fiscalDisp);
-                            const pct        = total > 0 ? (ocupacao / total) * 100 : 0;
+                            const total    = ev.vagasTotais;
+                            const ocupacao = ev.vagasPreenchidas;
+                            const pct      = total > 0 ? (ocupacao / total) * 100 : 0;
                             
                             // Define cores da tag de status no mobile
                             let statusBg = '#e0e7ff';
