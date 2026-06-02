@@ -178,7 +178,7 @@ export const DashboardCoord = () => {
     } catch (error) { alert('Erro ao salvar alterações.'); }
   };
 
- // ── EVENTOS: CRIAR ─────────────────────────────────────────────
+// ── EVENTOS: CRIAR ─────────────────────────────────────────────
   const handleCriarEvento = async (e) => {
     e.preventDefault();
 
@@ -186,11 +186,14 @@ export const DashboardCoord = () => {
     if (isSubmitting) return;
 
     // 2. Trava anti evento duplicado (Compara Nome e a Data Exata)
-    const dataInicioSelecionada = new Date(`${eventoFormData.data}T${eventoFormData.horario}:00-03:00`).getTime();
+    const [ano, mes, dia] = eventoFormData.data.split('-');
+    const [hora, min]     = eventoFormData.horario.split(':');
+    
+    const dataInicioLocal = new Date(ano, mes - 1, dia, hora, min);
     
     const eventoDuplicado = eventos.some(ev => {
       const mesmoNome = ev.titulo.trim().toLowerCase() === eventoFormData.nome.trim().toLowerCase();
-      const mesmaData = new Date(ev.dataPura).getTime() === dataInicioSelecionada;
+      const mesmaData = new Date(ev.dataPura).getTime() === dataInicioLocal.getTime();
       return mesmoNome && mesmaData;
     });
 
@@ -203,21 +206,11 @@ export const DashboardCoord = () => {
     setIsSubmitting(true);
 
     try {
-      const [ano, mes, dia] = eventoFormData.data.split('-');
-      const [hora, min]     = eventoFormData.horario.split(':');
-      
-      const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00-03:00`;
+      const dataInicioExata = dataInicioLocal.toISOString().substring(0, 19);
       
       const duracao = parseInt(eventoFormData.duracao) || 1;
-      const dataFimObj = new Date(ano, mes - 1, dia, parseInt(hora) + duracao, parseInt(min));
-      
-      const anoFim = dataFimObj.getFullYear();
-      const mesFim = String(dataFimObj.getMonth() + 1).padStart(2, '0');
-      const diaFim = String(dataFimObj.getDate()).padStart(2, '0');
-      const horaFimStr = String(dataFimObj.getHours()).padStart(2, '0');
-      const minFimStr = String(dataFimObj.getMinutes()).padStart(2, '0');
-      
-      const dataFimExata = `${anoFim}-${mesFim}-${diaFim}T${horaFimStr}:${minFimStr}:00-03:00`;
+      const dataFimLocal = new Date(ano, mes - 1, dia, parseInt(hora) + duracao, parseInt(min));
+      const dataFimExata = dataFimLocal.toISOString().substring(0, 19);
       
       const vagas = parseInt(eventoFormData.vagas) || 0;
       
