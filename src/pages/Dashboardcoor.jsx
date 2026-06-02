@@ -16,25 +16,20 @@ export const DashboardCoord = () => {
   const [alocacoesEvento, setAlocacoesEvento]         = useState([]);
   const [editMode, setEditMode]                       = useState(false);
   const [idEventoEditando, setIdEventoEditando]       = useState(null);
-
+  const [isSubmitting, setIsSubmitting]               = useState(false);
   const [cancelamentosEvento,   setCancelamentosEvento]   = useState([]);
   const [justificativasAbertas, setJustificativasAbertas] = useState(new Set());
-
   const [activeSubTabRelatorio, setActiveSubTabRelatorio] = useState('qrcode');
   const [qrInfo,        setQrInfo]        = useState(null);
   const [qrSegundos,    setQrSegundos]    = useState(0);
   const [qrModalAberto, setQrModalAberto] = useState(false);
   const [qrFullscreen,  setQrFullscreen]  = useState(false);
   const qrTimerRef = useRef(null);
-
-  // Estado para armazenar a foto de perfil em Base64
   const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('avatarUsuario') || '');
-
   const [eventoFormData, setEventoFormData] = useState({
     nome: '', serie: '', data: '', horario: '',
     duracao: '', vagas: '', valor: '', tipoFuncao: 'Ledor', observacoes: ''
   });
-
   const [perfilFormData, setPerfilFormData] = useState({
     nome:           localStorage.getItem('nomeUsuario')  || '',
     email:          localStorage.getItem('emailUsuario') || '',
@@ -43,7 +38,6 @@ export const DashboardCoord = () => {
     novaSenha:      '',
     confirmarSenha: '',
   });
-
   const nomeLogado = localStorage.getItem('nomeUsuario') || 'Coordenador';
   const iniciais   = nomeLogado && nomeLogado !== 'Coordenador'
     ? nomeLogado.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
@@ -187,6 +181,27 @@ export const DashboardCoord = () => {
  // ── EVENTOS: CRIAR ─────────────────────────────────────────────
   const handleCriarEvento = async (e) => {
     e.preventDefault();
+
+    // 1. Trava anti duplo-clique
+    if (isSubmitting) return;
+
+    // 2. Trava anti evento duplicado (Compara Nome e a Data Exata)
+    const dataInicioSelecionada = new Date(`${eventoFormData.data}T${eventoFormData.horario}:00-03:00`).getTime();
+    
+    const eventoDuplicado = eventos.some(ev => {
+      const mesmoNome = ev.titulo.trim().toLowerCase() === eventoFormData.nome.trim().toLowerCase();
+      const mesmaData = new Date(ev.dataPura).getTime() === dataInicioSelecionada;
+      return mesmoNome && mesmaData;
+    });
+
+    if (eventoDuplicado) {
+      alert('⚠️ Ops! Já existe uma prova com este exato nome e horário na plataforma.');
+      return;
+    }
+
+    // 3. Bloqueia o botão e inicia a criação
+    setIsSubmitting(true);
+
     try {
       const [ano, mes, dia] = eventoFormData.data.split('-');
       const [hora, min]     = eventoFormData.horario.split(':');
@@ -217,7 +232,6 @@ export const DashboardCoord = () => {
       };
       
       await eventoService.criarEvento(dto);
-
       await carregarDadosIniciais();
 
       setIsModalOpen(false);
@@ -227,6 +241,9 @@ export const DashboardCoord = () => {
       const msg = error.response?.data?.mensagem || (error.response?.data?.errors ? JSON.stringify(error.response?.data?.errors) : 'Verifique os dados e tente novamente.');
       alert(`Erro ao criar evento: ${msg}`); 
       console.error(error);
+    } finally {
+      // 4. Liberta o botão independentemente de dar erro ou sucesso
+      setIsSubmitting(false);
     }
   };
 
@@ -1049,8 +1066,21 @@ const handleSalvarEdicao = async (e) => {
               <div className="field-grp full"><label>OBSERVAÇÕES</label><input type="text" name="observacoes" value={eventoFormData.observacoes} onChange={handleInputChange} placeholder="Informações adicionais"/></div>
             </div>
             <div className="modal-footer">
-              <button className="btn-outline" onClick={()=>{ setIsModalOpen(false); setEditMode(false); }}>Cancelar</button>
-              <button className="btn-primary" onClick={editMode?handleSalvarEdicao:handleCriarEvento}>{editMode?'Salvar Alterações':'Criar Evento'}</button>
+              <button 
+                className="btn-outline" 
+                onClick={()=>{ setIsModalOpen(false); setEditMode(false); }}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={editMode ? handleSalvarEdicao : handleCriarEvento}
+                disabled={isSubmitting}
+                style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+              >
+                {isSubmitting ? 'Salvando...' : (editMode ? 'Salvar Alterações' : 'Criar Evento')}
+              </button>
             </div>
           </div>
         </div>
