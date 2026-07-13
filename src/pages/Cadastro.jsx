@@ -29,11 +29,8 @@ export const Cadastro = () => {
   useEffect(() => {
     const acordarServidor = async () => {
       try {
-        console.log("Pingando servidor...");
         await api.get('/usuarios/health'); // Ou a rota exata que você criou
-        console.log("Servidor acordado!");
       } catch (err) {
-        console.log("Servidor ainda a acordar...");
       }
     };
     
@@ -294,9 +291,6 @@ const handleSubmit = async (e) => {
 
  
 
-  // DETETIVE 1: Vemos se o botão pelo menos disparou a função
-
-  console.log("1. Botão clicado! Iniciando validação...");
 
 
 
@@ -318,15 +312,7 @@ const handleSubmit = async (e) => {
 
 
 
-    console.log("2. Enviando requisição para a API...");
-
-   
-
     await api.post('/usuarios/cadastro', formData);
-
-   
-
-    console.log("3. Sucesso! A API respondeu.");
 
     alert('Cadastro realizado com sucesso!');
 

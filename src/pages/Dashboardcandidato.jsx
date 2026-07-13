@@ -41,8 +41,9 @@ export const DashboardCandidato = () => {
   const [perfilFormData, setPerfilFormData] = useState({
     nome: nomeLogado, email: emailLogado,
     cpf: '', celular: '', chavePix: '', bancoNome: '',
-    novaSenha: '', confirmarSenha: ''
+    senhaAtual: '', novaSenha: '', confirmarSenha: ''
   });
+  const [salvandoPerfil, setSalvandoPerfil] = useState(false);
 
   // ─── 6. PONTO ────────────────────────────────────────────────
   const [horaAtual,        setHoraAtual]       = useState(new Date());
@@ -354,11 +355,40 @@ export const DashboardCandidato = () => {
     setPerfilFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSalvarPerfil = () => {
+  const handleSalvarPerfil = async () => {
     if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
       alert('As senhas não coincidem!'); return;
     }
-    alert('Perfil atualizado com sucesso!');
+    if (perfilFormData.novaSenha && !perfilFormData.senhaAtual) {
+      alert('Informe sua senha atual para definir uma nova senha.'); return;
+    }
+
+    setSalvandoPerfil(true);
+    try {
+      const payloadPerfil = {};
+      if (perfilFormData.nome?.trim())      payloadPerfil.NomeCompleto = perfilFormData.nome.trim();
+      if (perfilFormData.celular?.trim())   payloadPerfil.Celular      = perfilFormData.celular.trim();
+      if (perfilFormData.chavePix?.trim())  payloadPerfil.ChavePix     = perfilFormData.chavePix.trim();
+      if (perfilFormData.bancoNome?.trim()) payloadPerfil.BancoNome    = perfilFormData.bancoNome.trim();
+
+      await api.put('/usuarios/perfil', payloadPerfil);
+
+      if (perfilFormData.novaSenha) {
+        await api.put('/usuarios/senha', {
+          SenhaAtual: perfilFormData.senhaAtual,
+          NovaSenha: perfilFormData.novaSenha,
+          ConfirmarNovaSenha: perfilFormData.confirmarSenha,
+        });
+        setPerfilFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '', confirmarSenha: '' }));
+      }
+
+      alert('Perfil atualizado com sucesso!');
+    } catch (error) {
+      const msg = error.response?.data?.mensagem || 'Erro ao atualizar perfil.';
+      alert(msg);
+    } finally {
+      setSalvandoPerfil(false);
+    }
   };
 
   // ─── 13. CANDIDATURA ─────────────────────────────────────────
@@ -1098,6 +1128,11 @@ export const DashboardCandidato = () => {
                   </div>
                 ))}
                 <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', display: 'block', marginBottom: '8px' }}>SENHA ATUAL</label>
+                  <input type="password" name="senhaAtual" placeholder="Necessária apenas para trocar a senha" value={perfilFormData.senhaAtual} onChange={handlePerfilChange}
+                    style={{ border: '1px solid #d1d5db', padding: '12px', borderRadius: '8px', width: '100%', outline: 'none' }} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', display: 'block', marginBottom: '8px' }}>NOVA SENHA</label>
                   <input type="password" name="novaSenha" placeholder="Deixe em branco para não alterar" value={perfilFormData.novaSenha} onChange={handlePerfilChange}
                     style={{ border: '1px solid #d1d5db', padding: '12px', borderRadius: '8px', width: '100%', outline: 'none' }} />
@@ -1109,8 +1144,9 @@ export const DashboardCandidato = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                <button style={{ padding: '12px 24px', border: '1px solid #d1d5db', background: '#fff', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#374151', cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={handleSalvarPerfil} style={{ padding: '12px 24px', border: 'none', background: '#2563eb', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', cursor: 'pointer' }}>Salvar Alterações</button>
+                <button onClick={handleSalvarPerfil} disabled={salvandoPerfil} style={{ padding: '12px 24px', border: 'none', background: '#2563eb', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', cursor: salvandoPerfil ? 'default' : 'pointer', opacity: salvandoPerfil ? 0.7 : 1 }}>
+                  {salvandoPerfil ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
               </div>
             </div>
           </div>

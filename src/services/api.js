@@ -45,14 +45,6 @@ export const eventoService = {
     return data;
   },
 
-  candidatar: async (idEvento) => {
-    const token = localStorage.getItem('token');
-    const response = await api.post(`/eventos/${idEvento}/candidatar`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    return response.data;
-  }, 
-
   listarMinhasCandidaturas: async () => {
     const token = localStorage.getItem('token');
     // Busca as candidaturas do usuário (vai dar 404 até fazermos no C#)
@@ -77,28 +69,6 @@ export const eventoService = {
 
 };
 
-
-export const pontoService = {
-
-  registrarEntrada: async (idEvento) => {
-    const { data } = await api.post('/ponto/entrada', { idEvento, tipo: 'entrada' });
-    return data;
-  },
-
-  registrarSaida: async (idEvento, tokenQRCode) => {
-    const { data } = await api.post('/ponto/saida', {
-      idEvento,
-      tipo: 'saida',
-      tokenQRCode
-    });
-    return data;
-  },
-
-  obterQRCode: async (idEvento) => {
-    const { data } = await api.get(`/ponto/qrcode/${idEvento}`);
-    return data;
-  },
-};
 
 export const usuarioService = {
   // Puxa a lista de quem está aguardando aprovação
@@ -129,9 +99,5 @@ export const usuarioService = {
     return response.data;
   }
 };
-
-export const alocacaoService = {
-    buscarMinhasInscricoes: () => api.get('/alocacoes/minhas')
-  }
 
 export default api;
