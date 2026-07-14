@@ -70,6 +70,23 @@ export const eventoService = {
 };
 
 
+export const pontoService = {
+  registrarEntrada: async (idEvento) => {
+    const { data } = await api.post('/ponto/entrada', { idEvento, tipo: 'entrada' });
+    return data;
+  },
+
+  registrarSaida: async (idEvento, tokenQRCode) => {
+    const { data } = await api.post('/ponto/saida', { idEvento, tipo: 'saida', tokenQRCode });
+    return data;
+  },
+
+  obterQRCode: async (idEvento) => {
+    const { data } = await api.get(`/ponto/qrcode/${idEvento}`);
+    return data;
+  },
+};
+
 export const usuarioService = {
   // Puxa a lista de quem está aguardando aprovação
   listarPendentes: async () => {

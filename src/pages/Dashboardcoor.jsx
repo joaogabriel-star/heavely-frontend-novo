@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/Dashboardcoor.css';
-import api, { eventoService, usuarioService } from '../services/api'; 
+import api, { eventoService, usuarioService, pontoService } from '../services/api'; 
 import { LayoutDashboard, UserCheck, Users, FileText, User } from 'lucide-react';
 
 export const DashboardCoord = () => {
@@ -24,6 +24,7 @@ export const DashboardCoord = () => {
   const [qrSegundos,    setQrSegundos]    = useState(0);
   const [qrModalAberto, setQrModalAberto] = useState(false);
   const [qrFullscreen,  setQrFullscreen]  = useState(false);
+  const [qrCarregando,  setQrCarregando]  = useState(false);
   const qrTimerRef = useRef(null);
   const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('avatarUsuario') || '');
   const [eventoFormData, setEventoFormData] = useState({
@@ -398,22 +399,36 @@ const handleSalvarEdicao = async (e) => {
   };
 
   // ── QR CODE ───────────────────────────────────────────────────
-  const gerarToken    = () => Math.random().toString(36).substring(2, 10).toUpperCase();
   const formatarTimer = (s) => `${Math.floor(s/60).toString().padStart(2,'00')}:${(s%60).toString().padStart(2,'00')}`;
 
-  const abrirQrEvento = (ev) => {
+  // Aproximação client-side de "válido até meia-noite" (a validade de verdade é checada no backend a cada scan)
+  const segundosAteMeiaNoite = () => {
+    const agora = new Date();
+    const meiaNoite = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59);
+    return Math.max(0, Math.floor((meiaNoite.getTime() - agora.getTime()) / 1000));
+  };
+
+  const abrirQrEvento = async (ev) => {
     if (qrTimerRef.current) clearInterval(qrTimerRef.current);
-    const token   = gerarToken();
-    const payload = `EVENTO:${ev.id}|NOME:${ev.titulo}|DATA:${ev.data}|TOKEN:${token}`;
-    setQrInfo({ eventoId: ev.id, nome: ev.titulo, data: ev.data, payload });
-    setQrSegundos(1800); setQrModalAberto(true);
-    qrTimerRef.current = setInterval(() => {
-      setQrSegundos(prev => { if (prev <= 0) { clearInterval(qrTimerRef.current); return 0; } return prev - 1; });
-    }, 1000);
+    setQrCarregando(true);
+    try {
+      const resposta = await pontoService.obterQRCode(ev.id);
+      setQrInfo({ eventoId: ev.id, nome: ev.titulo, data: ev.data, token: resposta.token, expiraEm: resposta.expiraEm });
+      setQrSegundos(segundosAteMeiaNoite());
+      setQrModalAberto(true);
+      qrTimerRef.current = setInterval(() => {
+        setQrSegundos(prev => { if (prev <= 0) { clearInterval(qrTimerRef.current); return 0; } return prev - 1; });
+      }, 1000);
+    } catch (error) {
+      console.error('Erro ao gerar QR Code:', error);
+      alert(error.response?.data?.mensagem || 'Erro ao gerar QR Code.');
+    } finally {
+      setQrCarregando(false);
+    }
   };
 
   const fecharQrModal = () => { setQrModalAberto(false); setQrFullscreen(false); if (qrTimerRef.current) clearInterval(qrTimerRef.current); };
-  const qrImageUrl    = (tam = 280) => qrInfo ? `https://api.qrserver.com/v1/create-qr-code/?size=${tam}x${tam}&data=${encodeURIComponent(qrInfo.payload)}&ecc=M&color=0d1428&bgcolor=FFFFFF` : '';
+  const qrImageUrl    = (tam = 280) => qrInfo ? `https://api.qrserver.com/v1/create-qr-code/?size=${tam}x${tam}&data=${encodeURIComponent(qrInfo.token)}&ecc=M&color=0d1428&bgcolor=FFFFFF` : '';
 
   const totalAgendados  = eventos.filter(e => e.status === 'Agendado').length;
   const totalConcluidos = eventos.filter(e => e.status === 'Concluído').length;
@@ -963,7 +978,7 @@ const handleSalvarEdicao = async (e) => {
                               <td style={{ fontSize:'13.5px', color:'#334155', fontFamily:'monospace' }}>{ev.data}</td>
                               <td style={{ fontSize:'13.5px', color:'#334155' }}>{ev.vagasPreenchidas}/{ev.vagasTotais}</td>
                               <td><span style={{ backgroundColor: ev.status==='Concluído'?'#d1fae5':ev.status==='Cancelado'?'#fee2e2':'#e0e7ff', color: ev.status==='Concluído'?'#065f46':ev.status==='Cancelado'?'#991b1b':'#4338ca', padding:'4px 12px', borderRadius:'9999px', fontSize:'12px', fontWeight:'500' }}>{ev.status}</span></td>
-                              <td>{ev.status==='Cancelado'?(<span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>):(<button onClick={()=>abrirQrEvento(ev)} style={{ background:'#2563eb', color:'#fff', border:'none', padding:'7px 14px', borderRadius:'8px', fontFamily:'inherit', fontSize:'12.5px', fontWeight:'600', cursor:'pointer' }}>⬛ Gerar QR Code</button>)}</td>
+                              <td>{ev.status==='Cancelado'?(<span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>):(<button onClick={()=>abrirQrEvento(ev)} disabled={qrCarregando} style={{ background:'#2563eb', color:'#fff', border:'none', padding:'7px 14px', borderRadius:'8px', fontFamily:'inherit', fontSize:'12.5px', fontWeight:'600', cursor: qrCarregando?'default':'pointer', opacity: qrCarregando?0.7:1 }}>⬛ {qrCarregando?'Gerando...':'Gerar QR Code'}</button>)}</td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -1000,8 +1015,8 @@ const handleSalvarEdicao = async (e) => {
                                   {ev.status === 'Cancelado' ? (
                                     <span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>
                                   ) : (
-                                    <button onClick={() => abrirQrEvento(ev)} className="btn-candidatar-mobile" style={{ background: '#2563eb', color: '#fff', border: 'none' }}>
-                                      ⬛ Gerar QR Code
+                                    <button onClick={() => abrirQrEvento(ev)} disabled={qrCarregando} className="btn-candidatar-mobile" style={{ background: '#2563eb', color: '#fff', border: 'none', opacity: qrCarregando?0.7:1 }}>
+                                      ⬛ {qrCarregando?'Gerando...':'Gerar QR Code'}
                                     </button>
                                   )}
                                 </div>
@@ -1083,7 +1098,7 @@ const handleSalvarEdicao = async (e) => {
             <div style={{ fontFamily:'monospace', fontSize:'22px', fontWeight:'700', color: qrSegundos<=300?'#c0392b':'#0d1428', background: qrSegundos<=300?'#fde8e6':'#eff6ff', border:`1px solid ${qrSegundos<=300?'#fca5a5':'#bfdbfe'}`, padding:'8px 20px', borderRadius:'8px', display:'inline-block', marginBottom:'6px' }}>
               {formatarTimer(qrSegundos)}
             </div>
-            <div style={{ fontSize:'11.5px', color:'#94a3b8', marginBottom:'14px' }}>{qrSegundos===0?'⚠️ QR Code expirado — gere um novo':'Expira em 30 minutos'}</div>
+            <div style={{ fontSize:'11.5px', color:'#94a3b8', marginBottom:'14px' }}>{qrSegundos===0?'⚠️ QR Code expirado — gere um novo':qrInfo.expiraEm}</div>
             <div style={{ background:'#f8f9fb', border:'1px solid #f1f3f6', borderRadius:'8px', padding:'12px 14px', fontSize:'12.5px', color:'#64728a', lineHeight:'1.7', textAlign:'left', marginBottom:'18px' }}>
               <strong style={{ color:'#374151' }}>Instruções para o aplicador:</strong><br/>
               1. Abra o painel <em>Bater Ponto</em> no celular<br/>

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '../styles/Dashboardcoor.css';
 import '../styles/Dashboardcandidato.css';
-import api, { eventoService } from '../services/api';
+import api, { eventoService, pontoService } from '../services/api';
 import { LayoutDashboard, UserCheck, Users, FileText, User, FileCheck, Search, Wallet, Clock} from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 
@@ -50,6 +50,7 @@ export const DashboardCandidato = () => {
   const [statusPonto,      setStatusPonto]     = useState('entrada');
   const [registrosDeHoje, setRegistrosDeHoje] = useState([]);
   const [scaneando,       setScaneando]       = useState(false);
+  const scaneandoTokenRef = useRef(false); // trava contra chamadas duplicadas do onScan (várias por segundo)
 
   useEffect(() => {
     const timer = setInterval(() => setHoraAtual(new Date()), 1000);
@@ -306,7 +307,7 @@ export const DashboardCandidato = () => {
 
     try {
       if (statusPonto === 'entrada') {
-        await api.put(`/alocacoes/${idParaUsar}/checkin`);
+        await pontoService.registrarEntrada(idParaUsar);
 
         setRegistrosDeHoje(prev => [...prev, {
           tipo:   'entrada',
@@ -316,6 +317,7 @@ export const DashboardCandidato = () => {
         setStatusPonto('saida');
         carregarMinhasCandidaturas();
       } else {
+        scaneandoTokenRef.current = false;
         setScaneando(true);
       }
     } catch (error) {
@@ -327,11 +329,14 @@ export const DashboardCandidato = () => {
     }
   };
 
-  const confirmarScaneamentoQRCode = async () => {
+  const confirmarScaneamentoQRCode = async (tokenQRCode) => {
+    if (scaneandoTokenRef.current) return; // evita disparo duplicado por frame da câmera
+    scaneandoTokenRef.current = true;
+
     const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
 
     try {
-      await api.put(`/alocacoes/${idParaUsar}/checkout`);
+      await pontoService.registrarSaida(idParaUsar, tokenQRCode);
 
       setRegistrosDeHoje(prev => [...prev, {
         tipo:   'saida',
@@ -346,6 +351,7 @@ export const DashboardCandidato = () => {
       console.error('Erro checkout:', error.response?.data);
       const msg = error.response?.data?.mensagem || 'Erro ao registrar saída.';
       alert(msg);
+      scaneandoTokenRef.current = false; // permite tentar de novo com outro QR
     }
   };
 
@@ -1047,12 +1053,7 @@ export const DashboardCandidato = () => {
                         onScan={(result) => {
                           if (result && result.length > 0) {
                             const textoLido = result[0].rawValue || result[0].text || "";
-                            
-                            if (textoLido.includes('EVENTO:')) {
-                              confirmarScaneamentoQRCode();
-                            } else {
-                              console.log("Código ignorado (não é do evento):", textoLido);
-                            }
+                            if (textoLido) confirmarScaneamentoQRCode(textoLido);
                           }
                         }}
                         onError={(error) => console.log("Câmera aguardando/Erro:", error?.message)}
