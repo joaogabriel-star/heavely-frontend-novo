@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import '../styles/Cadastro.css';
 
@@ -11,6 +11,8 @@ import { authService } from '../services/api';
 
 
 export const Cadastro = () => {
+
+  const navigate = useNavigate();
 
   // Estado para controlar o tipo de conta selecionado
 
@@ -23,21 +25,6 @@ export const Cadastro = () => {
   const [arquivoNadaConsta, setArquivoNadaConsta] = useState(null);
 
   const [arquivoDiploma, setArquivoDiploma] = useState(null);
-
-  const [salvando, setSalvando] = useState(false);
-
-  useEffect(() => {
-    const acordarServidor = async () => {
-      try {
-        await api.get('/usuarios/health'); // Ou a rota exata que você criou
-      } catch (err) {
-      }
-    };
-    
-    acordarServidor();
-  }, []);
-
- 
 
   // Estado unificado para todos os campos do formulário
 
@@ -282,61 +269,6 @@ const handleSubmit = async (e) => {
     }
 
   };
-
-
-
-  const handleCadastro = async (e) => {
-
-  e.preventDefault();
-
- 
-
-
-
-
-  // (Suas validações de senhas, campos, etc. vêm aqui...)
-
-
-
-  // Avisa a tela para mostrar o "Carregando..."
-
-  setSalvando(true);
-
-
-
-  try {
-
-    const formData = new FormData();
-
-    // ... os seus formData.append() aqui ...
-
-
-
-    await api.post('/usuarios/cadastro', formData);
-
-    alert('Cadastro realizado com sucesso!');
-
-   
-
-    // Redireciona para o login ou limpa a tela...
-
-   
-
-  } catch (error) {
-
-    console.error("ERRO NO CADASTRO:", error);
-
-    alert('Erro ao criar conta. Verifique o console.');
-
-  } finally {
-
-    // Tira o carregando da tela, quer tenha dado certo ou erro
-
-    setSalvando(false);
-
-  }
-
-};
 
 
 
@@ -850,9 +782,9 @@ const handleSubmit = async (e) => {
 
                 <div className="submit-area mt-40">
 
-                  <button type="submit" disabled={salvando} className="btn-primary">
+                  <button type="submit" disabled={carregando} className="btn-primary">
 
-                    {salvando ? 'Criando conta...' : 'Criar minha conta →'}
+                    {carregando ? 'Criando conta...' : 'Criar minha conta →'}
 
                   </button>
 
