@@ -289,7 +289,10 @@ export const DashboardCandidato = () => {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
   // ─── 10. ID DO EVENTO DE HOJE ────────────────────────────────
-  const provaEmAndamento = minhasCandidaturas.find(c => c.entrada !== '--:--' && c.saida === '--:--');
+  // provaEmAndamento só pode vencer se também for de hoje — senão um check-in
+  // aberto e esquecido de outro dia sequestra o ponto pra sempre (achado real
+  // durante teste manual: fica impossível bater ponto em provas novas).
+  const provaEmAndamento = minhasCandidaturas.find(c => c.entrada !== '--:--' && c.saida === '--:--' && c.dataPura && ehHoje(c.dataPura));
   const provaDeHoje = minhasCandidaturas.find(c => c.dataPura && ehHoje(c.dataPura));
   const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
 
