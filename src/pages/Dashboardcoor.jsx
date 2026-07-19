@@ -808,9 +808,6 @@ const handleSalvarEdicao = async (e) => {
                       )}
                     </tbody>
                   </table>
-                  <div style={{ display:'flex', justifyContent:'flex-end', marginTop:'24px' }}>
-                    <button onClick={() => alert('Salas salvas!')} style={{ padding:'10px 24px', background:'#2563eb', color:'#fff', border:'none', borderRadius:'8px', fontWeight:'600', cursor:'pointer' }}>✓ Salvar Salas</button>
-                  </div>
                 </div>
                 <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', padding:'24px' }}>
                   <h2 style={{ fontSize:'18px', fontWeight:'700', color:'#0f172a', margin:'0 0 4px 0' }}>Observações da Prova</h2>
