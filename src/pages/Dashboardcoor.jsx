@@ -35,10 +35,11 @@ export const DashboardCoord = () => {
     nome:           localStorage.getItem('nomeUsuario')  || '',
     email:          localStorage.getItem('emailUsuario') || '',
     telefone:       '',
-    instituicao:    'Heavenly International School',
+    senhaAtual:     '',
     novaSenha:      '',
     confirmarSenha: '',
   });
+  const [salvandoPerfil, setSalvandoPerfil] = useState(false);
   const nomeLogado = localStorage.getItem('nomeUsuario') || 'Coordenador';
   const iniciais   = nomeLogado && nomeLogado !== 'Coordenador'
     ? nomeLogado.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
@@ -133,11 +134,38 @@ export const DashboardCoord = () => {
     }
   };
 
-  const handleSalvarPerfil = () => {
+  const handleSalvarPerfil = async () => {
     if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
       alert('As senhas não coincidem!'); return;
     }
-    alert('Perfil atualizado com sucesso!');
+    if (perfilFormData.novaSenha && !perfilFormData.senhaAtual) {
+      alert('Informe sua senha atual para definir uma nova senha.'); return;
+    }
+
+    setSalvandoPerfil(true);
+    try {
+      const payloadPerfil = {};
+      if (perfilFormData.nome?.trim())     payloadPerfil.NomeCompleto = perfilFormData.nome.trim();
+      if (perfilFormData.telefone?.trim()) payloadPerfil.Celular      = perfilFormData.telefone.trim();
+
+      await api.put('/usuarios/perfil', payloadPerfil);
+
+      if (perfilFormData.novaSenha) {
+        await api.put('/usuarios/senha', {
+          SenhaAtual: perfilFormData.senhaAtual,
+          NovaSenha: perfilFormData.novaSenha,
+          ConfirmarNovaSenha: perfilFormData.confirmarSenha,
+        });
+        setPerfilFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '', confirmarSenha: '' }));
+      }
+
+      alert('Perfil atualizado com sucesso!');
+    } catch (error) {
+      const msg = error.response?.data?.mensagem || 'Erro ao atualizar perfil.';
+      alert(msg);
+    } finally {
+      setSalvandoPerfil(false);
+    }
   };
 
   const getAvatarColor = (name) => {
@@ -924,11 +952,11 @@ const handleSalvarEdicao = async (e) => {
                   <div className="field-grp"><label>NOME COMPLETO</label><input type="text" name="nome" value={perfilFormData.nome} onChange={handlePerfilChange}/></div>
                   <div className="field-grp"><label>E-MAIL</label><input type="email" name="email" value={perfilFormData.email} onChange={handlePerfilChange}/></div>
                   <div className="field-grp"><label>TELEFONE</label><input type="text" name="telefone" value={perfilFormData.telefone} onChange={handlePerfilChange}/></div>
-                  <div className="field-grp"><label>INSTITUIÇÃO</label><input type="text" name="instituicao" value={perfilFormData.instituicao} onChange={handlePerfilChange}/></div>
+                  <div className="field-grp" style={{ gridColumn:'1/-1' }}><label>SENHA ATUAL</label><input type="password" name="senhaAtual" value={perfilFormData.senhaAtual} onChange={handlePerfilChange} placeholder="Necessária apenas para trocar a senha"/></div>
                   <div className="field-grp" style={{ gridColumn:'1/-1' }}><label>NOVA SENHA</label><input type="password" name="novaSenha" value={perfilFormData.novaSenha} onChange={handlePerfilChange} placeholder="Deixe em branco para não alterar"/></div>
                   <div className="field-grp" style={{ gridColumn:'1/-1' }}><label>CONFIRMAR SENHA</label><input type="password" name="confirmarSenha" value={perfilFormData.confirmarSenha} onChange={handlePerfilChange} placeholder="Repita a nova senha"/></div>
                 </div>
-                <div style={{ display:'flex', gap:'10px', marginTop:'20px' }}><button className="btn-outline">Cancelar</button><button className="btn-primary" onClick={handleSalvarPerfil}>Salvar Alterações</button></div>
+                <div style={{ display:'flex', gap:'10px', marginTop:'20px' }}><button className="btn-outline" disabled={salvandoPerfil}>Cancelar</button><button className="btn-primary" onClick={handleSalvarPerfil} disabled={salvandoPerfil}>{salvandoPerfil ? 'Salvando...' : 'Salvar Alterações'}</button></div>
               </div>
             </div>
           </div>
