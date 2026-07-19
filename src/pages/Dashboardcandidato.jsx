@@ -336,7 +336,14 @@ export const DashboardCandidato = () => {
     if (scaneandoTokenRef.current) return; // evita disparo duplicado por frame da câmera
     scaneandoTokenRef.current = true;
 
-    const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
+    if (!idProvaAtiva) {
+      alert('Nenhuma prova em andamento hoje — check-in não encontrado.');
+      scaneandoTokenRef.current = false;
+      setScaneando(false);
+      return;
+    }
+
+    const idParaUsar = idProvaAtiva;
 
     try {
       await pontoService.registrarSaida(idParaUsar, tokenQRCode);
@@ -1004,7 +1011,7 @@ export const DashboardCandidato = () => {
             {/* Aviso se não tem prova hoje */}
             {!idProvaAtiva && minhasCandidaturas.length > 0 && (
               <div style={{ background: '#fffbeb', border: '1px solid #fde047', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', fontSize: '13px', color: '#92400e' }}>
-                ⚠️ Você não tem prova agendada para hoje. O botão usará sua candidatura mais recente para fins de teste.
+                ⚠️ Você não tem prova agendada para hoje.
               </div>
             )}
 
@@ -1018,8 +1025,8 @@ export const DashboardCandidato = () => {
                     <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '32px', fontWeight: '500' }}>
                       {formatarData(horaAtual)}
                     </div>
-                    <button onClick={handleRegistrarPonto} disabled={scaneando}
-                      style={{ width: '100%', background: scaneando ? '#94a3b8' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', cursor: scaneando ? 'default' : 'pointer', letterSpacing: '0.5px' }}>
+                    <button onClick={handleRegistrarPonto} disabled={scaneando || !idProvaAtiva}
+                      style={{ width: '100%', background: (scaneando || !idProvaAtiva) ? '#94a3b8' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', cursor: (scaneando || !idProvaAtiva) ? 'default' : 'pointer', letterSpacing: '0.5px' }}>
                       {statusPonto === 'entrada' ? 'REGISTRAR PONTO' : 'REGISTRAR SAÍDA'}
                     </button>
                     {statusPonto === 'saida' && !scaneando && (
