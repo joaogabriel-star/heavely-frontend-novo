@@ -74,7 +74,8 @@ export const DashboardCoord = () => {
           id:               e.idEvento,
           titulo:           e.nomeProva || e.tituloProva || 'Sem título',
           serie:            e.serie || '',
-          valor:            e.valorHora ? e.valorHora.toString() : '37',
+          valor:            e.valorHora != null ? e.valorHora.toString() : '37',
+          observacoes:      e.observacoes || '',
           vagasTotais:      vagasLedor + vagasFiscal,
           vagasPreenchidas: e.vagasPreenchidas ?? 0,
           reservas:         0,
@@ -247,7 +248,7 @@ export const DashboardCoord = () => {
         TituloProva: eventoFormData.nome, Serie: eventoFormData.serie || 'HIS',
         LocalProva:  'Heavenly International School',
         DataProva:   dataInicioExata, HorarioFim: dataFimExata,
-        ValorHora:   parseFloat(eventoFormData.valor) || 37,
+        ValorHora:   eventoFormData.valor === '' ? 37 : parseFloat(eventoFormData.valor),
         Observacoes: eventoFormData.observacoes || '',
         VagasLedor:  eventoFormData.tipoFuncao === 'Ledor'  ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.ceil(vagas / 2)  : 0),
         VagasFiscal: eventoFormData.tipoFuncao === 'Fiscal' ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.floor(vagas / 2) : 0),
@@ -355,10 +356,10 @@ export const DashboardCoord = () => {
         data: `${ano}-${mes}-${dia}`, 
         horario: `${hora}:${min}`,
         duracao: '4',
-        vagas: eventoEmDetalhe.vagasTotais.toString(), 
-        valor: eventoEmDetalhe.valor, 
-        tipoFuncao: 'Ambos', 
-        observacoes: '' 
+        vagas: eventoEmDetalhe.vagasTotais.toString(),
+        valor: eventoEmDetalhe.valor,
+        tipoFuncao: 'Ambos',
+        observacoes: eventoEmDetalhe.observacoes || ''
       });
       setIsModalOpen(true);
     } catch (e) { 
@@ -386,7 +387,7 @@ const handleSalvarEdicao = async (e) => {
         TituloProva: eventoFormData.nome, Serie: eventoFormData.serie || 'HIS',
         LocalProva: 'Heavenly International School',
         DataProva: dataInicioExata, HorarioFim: dataFimExata,
-        ValorHora: parseFloat(eventoFormData.valor) || 37,
+        ValorHora: eventoFormData.valor === '' ? 37 : parseFloat(eventoFormData.valor),
         Observacoes: eventoFormData.observacoes || '',
         VagasLedor:  eventoFormData.tipoFuncao === 'Ledor'  ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.ceil(vagas / 2)  : 0),
         VagasFiscal: eventoFormData.tipoFuncao === 'Fiscal' ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.floor(vagas / 2) : 0),
@@ -836,10 +837,6 @@ const handleSalvarEdicao = async (e) => {
                       )}
                     </tbody>
                   </table>
-                </div>
-                <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', padding:'24px' }}>
-                  <h2 style={{ fontSize:'18px', fontWeight:'700', color:'#0f172a', margin:'0 0 4px 0' }}>Observações da Prova</h2>
-                  <textarea placeholder="Descreva ocorrências, ajustes ou informações relevantes..." rows="4" style={{ width:'100%', padding:'16px', border:'1px solid #e2e8f0', borderRadius:'8px', resize:'none', fontSize:'14px', fontFamily:'inherit', outline:'none', color:'#334155' }} />
                 </div>
               </div>
             )}

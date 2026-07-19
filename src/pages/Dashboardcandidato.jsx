@@ -140,7 +140,7 @@ export const DashboardCandidato = () => {
           vagasTotais: vagasTotaisParaMim,
           vagasPreenchidas: vagasPreenchidasParaMim,
           vagasDisponiveis: vagasDisponiveisParaMim,
-          valor: e.valorHora ? `R$ ${e.valorHora}/hora` : 'R$ 37/hora',
+          valor: e.valorHora != null ? `R$ ${e.valorHora}/hora` : 'R$ 37/hora',
           serie: e.serie || 'HIS',
           status: temVaga ? 'Aberta' : 'Na Reserva',
         };
