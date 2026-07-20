@@ -239,12 +239,12 @@ export const DashboardCoord = () => {
     setIsSubmitting(true);
 
     try {
-      const dataInicioExata = dataInicioLocal.toISOString().substring(0, 19);
-      
+      const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00`;
+
       const duracao = parseInt(eventoFormData.duracao) || 1;
-      const dataFimLocal = new Date(ano, mes - 1, dia, parseInt(hora) + duracao, parseInt(min));
-      const dataFimExata = dataFimLocal.toISOString().substring(0, 19);
-      
+      const horaFim = parseInt(hora) + duracao;
+      const dataFimExata = `${ano}-${mes}-${dia}T${horaFim.toString().padStart(2,'0')}:${min}:00`;
+
       const vagas = parseInt(eventoFormData.vagas) || 0;
       
       const dto = {
