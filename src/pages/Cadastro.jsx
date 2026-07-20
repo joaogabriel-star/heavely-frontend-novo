@@ -204,7 +204,7 @@ const handleSubmit = async (e) => {
 
        
 
-        await authService.cadastrar({
+        const resultadoCadastro = await authService.cadastrar({
 
           NomeCompleto: formData.nomeCompleto,
 
@@ -239,6 +239,38 @@ const handleSubmit = async (e) => {
           PossuiCertificadoLedor: tipoConta === 'Ledor'
 
         });
+
+
+
+        // Upload de documentos é best-effort: se falhar, o cadastro em si já
+
+        // foi criado com sucesso, então avisamos separado em vez de fazer
+
+        // parecer que o cadastro inteiro deu errado.
+
+        if (arquivoDiploma || arquivoNadaConsta) {
+
+          try {
+
+            const formDataDocs = new FormData();
+
+            if (arquivoDiploma) formDataDocs.append('Diploma', arquivoDiploma);
+
+            if (arquivoNadaConsta) formDataDocs.append('NadaConsta', arquivoNadaConsta);
+
+            await authService.enviarDocumentos(resultadoCadastro.idUsuario, formDataDocs);
+
+          } catch (uploadError) {
+
+            alert('Cadastro realizado com sucesso! Porém houve um erro ao enviar seus documentos — você poderá reenviá-los depois. Detalhe: ' + (uploadError.response?.data?.mensagem || 'erro desconhecido'));
+
+            navigate('/login');
+
+            return;
+
+          }
+
+        }
 
 
 
@@ -416,7 +448,7 @@ const handleSubmit = async (e) => {
 
       <p>Clique para enviar o certificado</p>
 
-      <small>Formatos aceitos: PDF — Max. 5MB</small>
+      <small>Formatos aceitos: PDF, JPG ou PNG — Max. 5MB</small>
 
      
 
@@ -546,9 +578,9 @@ const handleSubmit = async (e) => {
 
                           <p>Clique para enviar o nada consta</p>
 
-                          <small>Formatos aceitos: PDF — Max. 5MB</small>
+                          <small>Formatos aceitos: PDF, JPG ou PNG — Max. 5MB</small>
 
-                          <input type="file" name="nadaconsta" accept=".pdf" onChange={(e) => setArquivoNadaConsta(e.target.files[0])} />
+                          <input type="file" name="nadaconsta" accept=".pdf, image/jpeg, image/png" onChange={(e) => setArquivoNadaConsta(e.target.files[0])} />
 
                         </div>
 

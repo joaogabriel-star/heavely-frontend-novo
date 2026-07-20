@@ -31,6 +31,12 @@ export const authService = {
     const response = await api.post('/auth/cadastro-admin', dados);
     return response.data;
   },
+  enviarDocumentos: async (idUsuario, formData) => {
+    const response = await api.post(`/auth/cadastro/${idUsuario}/documentos`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };
 
 
