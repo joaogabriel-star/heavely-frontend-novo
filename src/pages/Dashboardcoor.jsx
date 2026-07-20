@@ -32,7 +32,7 @@ export const DashboardCoord = () => {
   const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('avatarUsuario') || '');
   const [eventoFormData, setEventoFormData] = useState({
     nome: '', serie: '', data: '', horario: '',
-    duracao: '', vagas: '', valor: '', tipoFuncao: 'Ledor', observacoes: ''
+    duracao: '', vagas: '', vagasLedor: '', vagasFiscal: '', valor: '', tipoFuncao: 'Ledor', observacoes: ''
   });
   const [perfilFormData, setPerfilFormData] = useState({
     nome:           localStorage.getItem('nomeUsuario')  || '',
@@ -246,22 +246,24 @@ export const DashboardCoord = () => {
       const dataFimExata = `${ano}-${mes}-${dia}T${horaFim.toString().padStart(2,'0')}:${min}:00`;
 
       const vagas = parseInt(eventoFormData.vagas) || 0;
-      
+      const vagasLedorInput  = parseInt(eventoFormData.vagasLedor)  || 0;
+      const vagasFiscalInput = parseInt(eventoFormData.vagasFiscal) || 0;
+
       const dto = {
         TituloProva: eventoFormData.nome, Serie: eventoFormData.serie || 'HIS',
         LocalProva:  'Heavenly International School',
         DataProva:   dataInicioExata, HorarioFim: dataFimExata,
         ValorHora:   eventoFormData.valor === '' ? 37 : parseFloat(eventoFormData.valor),
         Observacoes: eventoFormData.observacoes || '',
-        VagasLedor:  eventoFormData.tipoFuncao === 'Ledor'  ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.ceil(vagas / 2)  : 0),
-        VagasFiscal: eventoFormData.tipoFuncao === 'Fiscal' ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.floor(vagas / 2) : 0),
+        VagasLedor:  eventoFormData.tipoFuncao === 'Ambos' ? vagasLedorInput  : (eventoFormData.tipoFuncao === 'Ledor'  ? vagas : 0),
+        VagasFiscal: eventoFormData.tipoFuncao === 'Ambos' ? vagasFiscalInput : (eventoFormData.tipoFuncao === 'Fiscal' ? vagas : 0),
       };
-      
+
       await eventoService.criarEvento(dto);
       await carregarDadosIniciais();
 
       setIsModalOpen(false);
-      setEventoFormData({ nome:'',serie:'',data:'',horario:'',duracao:'',vagas:'',valor:'',tipoFuncao:'Ledor',observacoes:'' });
+      setEventoFormData({ nome:'',serie:'',data:'',horario:'',duracao:'',vagas:'',vagasLedor:'',vagasFiscal:'',valor:'',tipoFuncao:'Ledor',observacoes:'' });
       alert('✅ Evento criado com sucesso!');
     } catch (error) {
       const msg = error.response?.data?.mensagem || (error.response?.data?.errors ? JSON.stringify(error.response?.data?.errors) : 'Verifique os dados e tente novamente.');
@@ -360,6 +362,8 @@ export const DashboardCoord = () => {
         horario: `${hora}:${min}`,
         duracao: '4',
         vagas: eventoEmDetalhe.vagasTotais.toString(),
+        vagasLedor: (eventoEmDetalhe.vagasLedor ?? 0).toString(),
+        vagasFiscal: (eventoEmDetalhe.vagasFiscal ?? 0).toString(),
         valor: eventoEmDetalhe.valor,
         tipoFuncao: 'Ambos',
         observacoes: eventoEmDetalhe.observacoes || ''
@@ -386,14 +390,16 @@ const handleSalvarEdicao = async (e) => {
       const dataFimExata = `${ano}-${mes}-${dia}T${horaFim.toString().padStart(2,'0')}:${min}:00`;
       
       const vagas = parseInt(eventoFormData.vagas) || 0;
+      const vagasLedorInput  = parseInt(eventoFormData.vagasLedor)  || 0;
+      const vagasFiscalInput = parseInt(eventoFormData.vagasFiscal) || 0;
       const dto = {
         TituloProva: eventoFormData.nome, Serie: eventoFormData.serie || 'HIS',
         LocalProva: 'Heavenly International School',
         DataProva: dataInicioExata, HorarioFim: dataFimExata,
         ValorHora: eventoFormData.valor === '' ? 37 : parseFloat(eventoFormData.valor),
         Observacoes: eventoFormData.observacoes || '',
-        VagasLedor:  eventoFormData.tipoFuncao === 'Ledor'  ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.ceil(vagas / 2)  : 0),
-        VagasFiscal: eventoFormData.tipoFuncao === 'Fiscal' ? vagas : (eventoFormData.tipoFuncao === 'Ambos' ? Math.floor(vagas / 2) : 0),
+        VagasLedor:  eventoFormData.tipoFuncao === 'Ambos' ? vagasLedorInput  : (eventoFormData.tipoFuncao === 'Ledor'  ? vagas : 0),
+        VagasFiscal: eventoFormData.tipoFuncao === 'Ambos' ? vagasFiscalInput : (eventoFormData.tipoFuncao === 'Fiscal' ? vagas : 0),
       };
       
       await api.put(`/eventos/${idEventoEditando}`, dto);
@@ -1125,9 +1131,16 @@ const handleSalvarEdicao = async (e) => {
               <div className="field-grp"><label>DATA *</label><input type="date" name="data" value={eventoFormData.data} onChange={handleInputChange}/></div>
               <div className="field-grp"><label>HORÁRIO *</label><input type="time" name="horario" value={eventoFormData.horario} onChange={handleInputChange}/></div>
               <div className="field-grp"><label>DURAÇÃO (HORAS) *</label><input type="number" name="duracao" value={eventoFormData.duracao} onChange={handleInputChange} placeholder="Ex: 4"/></div>
-              <div className="field-grp"><label>VAGAS *</label><input type="number" name="vagas" value={eventoFormData.vagas} onChange={handleInputChange} placeholder="Ex: 5"/></div>
               <div className="field-grp"><label>VALOR / HORA (R$)</label><input type="number" name="valor" value={eventoFormData.valor} onChange={handleInputChange} placeholder="Ex: 37"/></div>
               <div className="field-grp"><label>TIPO DE FUNÇÃO</label><select name="tipoFuncao" value={eventoFormData.tipoFuncao} onChange={handleInputChange}><option value="Ledor">Ledor</option><option value="Fiscal">Fiscal / Aplicador</option><option value="Ambos">Ambos</option></select></div>
+              {eventoFormData.tipoFuncao === 'Ambos' ? (
+                <>
+                  <div className="field-grp"><label>VAGAS LEDOR *</label><input type="number" name="vagasLedor" value={eventoFormData.vagasLedor} onChange={handleInputChange} placeholder="Ex: 3"/></div>
+                  <div className="field-grp"><label>VAGAS FISCAL *</label><input type="number" name="vagasFiscal" value={eventoFormData.vagasFiscal} onChange={handleInputChange} placeholder="Ex: 2"/></div>
+                </>
+              ) : (
+                <div className="field-grp"><label>VAGAS *</label><input type="number" name="vagas" value={eventoFormData.vagas} onChange={handleInputChange} placeholder="Ex: 5"/></div>
+              )}
               <div className="field-grp full"><label>OBSERVAÇÕES</label><input type="text" name="observacoes" value={eventoFormData.observacoes} onChange={handleInputChange} placeholder="Informações adicionais"/></div>
             </div>
             <div className="modal-footer">
