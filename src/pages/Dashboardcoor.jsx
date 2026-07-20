@@ -26,6 +26,9 @@ export const DashboardCoord = () => {
   const [qrFullscreen,  setQrFullscreen]  = useState(false);
   const [qrCarregando,  setQrCarregando]  = useState(false);
   const qrTimerRef = useRef(null);
+  const [relatorioModalAberto, setRelatorioModalAberto] = useState(false);
+  const [relatorioForm, setRelatorioForm] = useState({ tipoPagamento: 'PorHora', valor: '' });
+  const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('avatarUsuario') || '');
   const [eventoFormData, setEventoFormData] = useState({
     nome: '', serie: '', data: '', horario: '',
@@ -459,6 +462,46 @@ const handleSalvarEdicao = async (e) => {
   const fecharQrModal = () => { setQrModalAberto(false); setQrFullscreen(false); if (qrTimerRef.current) clearInterval(qrTimerRef.current); };
   const qrImageUrl    = (tam = 280) => qrInfo ? `https://api.qrserver.com/v1/create-qr-code/?size=${tam}x${tam}&data=${encodeURIComponent(qrInfo.token)}&ecc=M&color=0d1428&bgcolor=FFFFFF` : '';
 
+  // ── RELATÓRIO PDF ────────────────────────────────────────────────
+  const abrirModalRelatorio = () => {
+    setRelatorioForm({ tipoPagamento: 'PorHora', valor: eventoEmDetalhe.valor || '' });
+    setRelatorioModalAberto(true);
+  };
+
+  const handleBaixarRelatorio = async () => {
+    setGerandoRelatorio(true);
+    try {
+      const params = { TipoPagamento: relatorioForm.tipoPagamento };
+      if (relatorioForm.tipoPagamento === 'PorHora') params.ValorPorHora = relatorioForm.valor || 0;
+      else params.ValorFixo = relatorioForm.valor || 0;
+
+      const resposta = await api.get(`/relatorios/${eventoEmDetalhe.id}/pdf`, { params, responseType: 'blob' });
+
+      const url = window.URL.createObjectURL(new Blob([resposta.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `relatorio_pagamento_${eventoEmDetalhe.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setRelatorioModalAberto(false);
+    } catch (error) {
+      let msg = 'Erro ao gerar relatório.';
+      if (error.response?.data instanceof Blob) {
+        try {
+          const texto = await error.response.data.text();
+          msg = JSON.parse(texto).mensagem || msg;
+        } catch { /* mantém msg padrão */ }
+      } else if (error.response?.data?.mensagem) {
+        msg = error.response.data.mensagem;
+      }
+      alert(msg);
+    } finally {
+      setGerandoRelatorio(false);
+    }
+  };
+
   const totalAgendados  = eventos.filter(e => e.status === 'Agendado').length;
   const totalConcluidos = eventos.filter(e => e.status === 'Concluído').length;
 
@@ -674,7 +717,7 @@ const handleSalvarEdicao = async (e) => {
                       <span style={{ background:'#d1fae5', color:'#065f46', padding:'3px 10px', borderRadius:'9999px', fontWeight:'600', fontSize:'12px' }}>Concluído</span>
                     </div>
                   </div>
-                  <button onClick={() => alert('Exportando relatório...')} style={{ padding:'9px 18px', border:'1px solid #d1d5db', background:'#fff', borderRadius:'8px', color:'#374151', fontWeight:'600', cursor:'pointer', fontSize:'13.5px', display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
+                  <button onClick={abrirModalRelatorio} style={{ padding:'9px 18px', border:'1px solid #d1d5db', background:'#fff', borderRadius:'8px', color:'#374151', fontWeight:'600', cursor:'pointer', fontSize:'13.5px', display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Exportar Relatório
                   </button>
@@ -1146,6 +1189,38 @@ const handleSalvarEdicao = async (e) => {
           <img src={qrImageUrl(380)} alt="QR Code tela cheia" style={{ background:'#fff', padding:'14px', borderRadius:'12px', display:'block' }} width={380} height={380}/>
           <div style={{ fontFamily:'monospace', fontSize:'32px', fontWeight:'700', marginTop:'24px', color: qrSegundos<=300?'#f87171':'#fff' }}>{qrSegundos===0?'EXPIRADO':formatarTimer(qrSegundos)}</div>
           <div style={{ fontSize:'14px', color:'rgba(255,255,255,.45)', marginTop:'10px' }}>Aponte a câmera do celular para registrar saída</div>
+        </div>
+      )}
+
+      {/* MODAL EXPORTAR RELATÓRIO */}
+      {relatorioModalAberto && eventoEmDetalhe && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }} onClick={() => setRelatorioModalAberto(false)}>
+          <div style={{ background:'#fff', borderRadius:'16px', padding:'32px', width:'420px', maxWidth:'96vw', boxShadow:'0 8px 32px rgba(0,0,0,.2)' }} onClick={e=>e.stopPropagation()}>
+            <div style={{ fontSize:'17px', fontWeight:'700', color:'#0f172a', marginBottom:'4px' }}>Exportar Relatório</div>
+            <div style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>{eventoEmDetalhe.titulo}</div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize:'12px', fontWeight:'700', color:'#6b7280', display:'block', marginBottom:'8px' }}>TIPO DE PAGAMENTO</label>
+              <select value={relatorioForm.tipoPagamento} onChange={e => setRelatorioForm(prev => ({ ...prev, tipoPagamento: e.target.value }))} style={{ width:'100%', padding:'10px 12px', borderRadius:'8px', border:'1px solid #d1d5db' }}>
+                <option value="PorHora">Por hora trabalhada</option>
+                <option value="ValorFixo">Valor fixo por pessoa</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize:'12px', fontWeight:'700', color:'#6b7280', display:'block', marginBottom:'8px' }}>
+                {relatorioForm.tipoPagamento === 'PorHora' ? 'VALOR / HORA (R$)' : 'VALOR FIXO POR PESSOA (R$)'}
+              </label>
+              <input type="number" value={relatorioForm.valor} onChange={e => setRelatorioForm(prev => ({ ...prev, valor: e.target.value }))} placeholder="Ex: 37" style={{ width:'100%', padding:'10px 12px', borderRadius:'8px', border:'1px solid #d1d5db' }} />
+            </div>
+
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:'10px' }}>
+              <button onClick={() => setRelatorioModalAberto(false)} disabled={gerandoRelatorio} style={{ padding:'9px 18px', border:'1.5px solid #e4e7ed', background:'#fff', borderRadius:'8px', fontSize:'13px', fontWeight:'500', color:'#374151', cursor:'pointer' }}>Cancelar</button>
+              <button onClick={handleBaixarRelatorio} disabled={gerandoRelatorio} style={{ padding:'9px 18px', border:'none', background:'#2563eb', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: gerandoRelatorio ? 'default' : 'pointer', opacity: gerandoRelatorio ? 0.7 : 1 }}>
+                {gerandoRelatorio ? 'Gerando...' : '⬇ Baixar PDF'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
