@@ -465,8 +465,16 @@ export const DashboardCandidato = () => {
   const fecharModalRelato = ()       => setProvaParaRelatar(null);
   const enviarRelato = async () => {
     if (!relatoForm.tipo || !relatoForm.descricao) { alert('Preencha tipo e descrição.'); return; }
-    alert('✅ Relato enviado com sucesso à coordenação!');
-    fecharModalRelato();
+    try {
+      await api.post(`/eventos/${provaParaRelatar.id}/ocorrencias`, {
+        Tipo: relatoForm.tipo,
+        Descricao: relatoForm.descricao,
+      });
+      alert('✅ Relato enviado com sucesso à coordenação!');
+      fecharModalRelato();
+    } catch (error) {
+      alert(error.response?.data?.mensagem || 'Erro ao enviar relato. Tente novamente.');
+    }
   };
 
   // ═══════════════════════════════════════════════════════════════
