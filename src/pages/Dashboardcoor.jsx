@@ -1022,7 +1022,7 @@ const handleSalvarEdicao = async (e) => {
                     <div style={{ fontSize:'13px', color:'#1e40af', lineHeight:'1.7' }}>
                       1. Clique em <strong>"Gerar QR Code"</strong> ao encerrar a prova.&nbsp;·&nbsp;
                       2. Exiba o QR Code na saída da sala.&nbsp;·&nbsp;
-                      3. Each ledor/fiscal escaneia com o celular no painel <strong>"Bater Ponto → Saída"</strong>.&nbsp;·&nbsp;
+                      3. Cada ledor/fiscal escaneia com o celular no painel <strong>"Bater Ponto → Saída"</strong>.&nbsp;·&nbsp;
                       4. O QR expira à <strong>meia-noite</strong> do dia da prova.
                     </div>
                   </div>
