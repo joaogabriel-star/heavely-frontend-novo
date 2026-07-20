@@ -345,3 +345,41 @@
 /* Utilitários */
 .mt-20 { margin-top: 20px; }
 .mt-40 { margin-top: 40px; }
+
+/* ══════════════════════════════════════════
+   RESPONSIVIDADE — MOBILE (≤ 768px)
+══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .cadastro-header {
+    padding: 0 16px;
+  }
+
+  .cadastro-content {
+    padding: 20px 12px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sem isso, .full-width (span 2) força o grid a criar uma coluna
+     implícita extra e os outros campos voltam a ficar 2 por linha,
+     mesmo com grid-template-columns: 1fr acima. */
+  .full-width {
+    grid-column: span 1;
+  }
+
+  .cards-conta {
+    flex-direction: column;
+    margin-left: 0;
+  }
+
+  .step-line {
+    width: 12px;
+    margin: 0 6px;
+  }
+
+  .chips-row {
+    flex-wrap: wrap;
+  }
+}
