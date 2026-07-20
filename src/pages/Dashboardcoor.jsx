@@ -1,10 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/Dashboardcoor.css';
-import api, { eventoService, usuarioService, pontoService } from '../services/api'; 
+import api, { eventoService, usuarioService, pontoService, notaFiscalService } from '../services/api';
 import { LayoutDashboard, UserCheck, Users, FileText, User } from 'lucide-react';
 
+// Fonte única dos valores de Série — reaproveitada no formulário de evento e no
+// filtro da Nota Fiscal, pra nunca ter duas listas que podem ficar dessincronizadas.
+const SERIES_EF2 = [
+  { value: '6EF2', label: '6º Ano – EF2' },
+  { value: '7EF2', label: '7º Ano – EF2' },
+  { value: '8EF2', label: '8º Ano – EF2' },
+  { value: '9EF2', label: '9º Ano – EF2' },
+];
+const SERIES_EM = [
+  { value: '1EM', label: '1º Ano – EM' },
+  { value: '2EM', label: '2º Ano – EM' },
+  { value: '3EM', label: '3º Ano – EM' },
+];
+
 export const DashboardCoord = () => {
-  
+
   const [activeTab, setActiveTab]         = useState('dashboard');
   const [activeSubTab, setActiveSubTab]   = useState('todos');
   const [isModalOpen, setIsModalOpen]     = useState(false);
@@ -29,6 +43,10 @@ export const DashboardCoord = () => {
   const [relatorioModalAberto, setRelatorioModalAberto] = useState(false);
   const [relatorioForm, setRelatorioForm] = useState({ tipoPagamento: 'PorHora', valor: '' });
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
+  const [nfFiltro, setNfFiltro] = useState({ dataInicio: '', dataFim: '', segmento: '', serie: '', idUsuario: '' });
+  const [nfPreview, setNfPreview] = useState(null);
+  const [nfBuscando, setNfBuscando] = useState(false);
+  const [nfBaixando, setNfBaixando] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('avatarUsuario') || '');
   const [eventoFormData, setEventoFormData] = useState({
     nome: '', serie: '', data: '', horario: '',
@@ -505,6 +523,80 @@ const handleSalvarEdicao = async (e) => {
       alert(msg);
     } finally {
       setGerandoRelatorio(false);
+    }
+  };
+
+  // ── NOTA FISCAL AGREGADA ─────────────────────────────────────────
+  const handleNfFiltroChange = (e) => {
+    const { name, value } = e.target;
+    setNfFiltro(prev => {
+      const novo = { ...prev, [name]: value };
+      if (name === 'segmento') novo.serie = ''; // reseta Série ao trocar Segmento
+      return novo;
+    });
+    setNfPreview(null); // invalida a prévia anterior ao mudar qualquer filtro
+  };
+
+  const montarParamsNf = () => {
+    const params = { DataInicio: nfFiltro.dataInicio, DataFim: nfFiltro.dataFim };
+    if (nfFiltro.segmento) params.Segmento = nfFiltro.segmento;
+    if (nfFiltro.serie) params.Serie = nfFiltro.serie;
+    if (nfFiltro.idUsuario) params.IdUsuario = nfFiltro.idUsuario;
+    return params;
+  };
+
+  const validarPeriodoNf = () => {
+    if (!nfFiltro.dataInicio || !nfFiltro.dataFim) {
+      alert('⚠️ Preencha Data Início e Data Fim.');
+      return false;
+    }
+    if (nfFiltro.dataFim < nfFiltro.dataInicio) {
+      alert('⚠️ Data Fim não pode ser antes de Data Início.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleBuscarPreviaNotaFiscal = async () => {
+    if (!validarPeriodoNf()) return;
+    setNfBuscando(true);
+    try {
+      const dados = await notaFiscalService.buscarDados(montarParamsNf());
+      setNfPreview(dados);
+    } catch (error) {
+      alert(error.response?.data?.mensagem || 'Erro ao buscar prévia da Nota Fiscal.');
+      setNfPreview(null);
+    } finally {
+      setNfBuscando(false);
+    }
+  };
+
+  const handleBaixarNotaFiscalPdf = async () => {
+    if (!validarPeriodoNf()) return;
+    setNfBaixando(true);
+    try {
+      const blob = await notaFiscalService.baixarPdf(montarParamsNf());
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `nota_fiscal_${nfFiltro.dataInicio}_${nfFiltro.dataFim}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      let msg = 'Erro ao gerar PDF da Nota Fiscal.';
+      if (error.response?.data instanceof Blob) {
+        try {
+          const texto = await error.response.data.text();
+          msg = JSON.parse(texto).mensagem || msg;
+        } catch { /* mantém msg padrão */ }
+      } else if (error.response?.data?.mensagem) {
+        msg = error.response.data.mensagem;
+      }
+      alert(msg);
+    } finally {
+      setNfBaixando(false);
     }
   };
 
@@ -1102,16 +1194,83 @@ const handleSalvarEdicao = async (e) => {
               </div>
             )}
             {activeSubTabRelatorio === 'notafiscal' && (
-              <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', padding:'48px', textAlign:'center', boxShadow:'0 1px 3px rgba(0,0,0,.07)' }}>
-                <div style={{ fontSize:'48px', marginBottom:'16px' }}>📄</div>
-                <h2 style={{ fontSize:'20px', fontWeight:'700', color:'#0f172a', marginBottom:'8px' }}>Nota Fiscal Quinzenal</h2>
-                <p style={{ fontSize:'14px', color:'#64748b', maxWidth:'480px', margin:'0 auto 24px', lineHeight:'1.7' }}>
-                  A nota fiscal será gerada com base nos registros de <strong>Provas Aplicadas</strong>, agrupados por série (EF / EM) a cada 15 dias.<br/><br/>
-                  <strong style={{ color:'#2563eb' }}>Em ajuste</strong> — a coordenação está finalizando o layout antes de ativar.
-                </p>
-                <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'#fef3c7', border:'1px solid #fde68a', color:'#92400e', padding:'10px 18px', borderRadius:'8px', fontSize:'13px', fontWeight:'500' }}>
-                  ⏳ Esta aba será ativada em breve
+              <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', padding:'24px', boxShadow:'0 1px 3px rgba(0,0,0,.07)' }}>
+                <div style={{ fontSize:'16px', fontWeight:'700', color:'#0f172a', marginBottom:'4px' }}>Nota Fiscal — Relatório Agregado</div>
+                <div style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>Filtre o período e gere o relatório agrupado por segmento (EF2 / EM).</div>
+
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:'14px', marginBottom:'18px' }}>
+                  <div>
+                    <label style={{ display:'block', fontSize:'11.5px', fontWeight:'600', color:'#374151', marginBottom:'4px' }}>DATA INÍCIO *</label>
+                    <input type="date" name="dataInicio" value={nfFiltro.dataInicio} onChange={handleNfFiltroChange} style={{ width:'100%', padding:'9px 10px', borderRadius:'8px', border:'1px solid #d1d5db', boxSizing:'border-box' }}/>
+                  </div>
+                  <div>
+                    <label style={{ display:'block', fontSize:'11.5px', fontWeight:'600', color:'#374151', marginBottom:'4px' }}>DATA FIM *</label>
+                    <input type="date" name="dataFim" value={nfFiltro.dataFim} onChange={handleNfFiltroChange} style={{ width:'100%', padding:'9px 10px', borderRadius:'8px', border:'1px solid #d1d5db', boxSizing:'border-box' }}/>
+                  </div>
+                  <div>
+                    <label style={{ display:'block', fontSize:'11.5px', fontWeight:'600', color:'#374151', marginBottom:'4px' }}>SEGMENTO</label>
+                    <select name="segmento" value={nfFiltro.segmento} onChange={handleNfFiltroChange} style={{ width:'100%', padding:'9px 10px', borderRadius:'8px', border:'1px solid #d1d5db', boxSizing:'border-box' }}>
+                      <option value="">Todos</option>
+                      <option value="EF2">EF2</option>
+                      <option value="EM">EM</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display:'block', fontSize:'11.5px', fontWeight:'600', color:'#374151', marginBottom:'4px' }}>SÉRIE (opcional)</label>
+                    <select name="serie" value={nfFiltro.serie} onChange={handleNfFiltroChange} disabled={!nfFiltro.segmento} style={{ width:'100%', padding:'9px 10px', borderRadius:'8px', border:'1px solid #d1d5db', boxSizing:'border-box', background: !nfFiltro.segmento ? '#f3f4f6' : '#fff' }}>
+                      <option value="">Todas</option>
+                      {(nfFiltro.segmento === 'EF2' ? SERIES_EF2 : nfFiltro.segmento === 'EM' ? SERIES_EM : []).map(s => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display:'block', fontSize:'11.5px', fontWeight:'600', color:'#374151', marginBottom:'4px' }}>PESSOA (opcional)</label>
+                    <select name="idUsuario" value={nfFiltro.idUsuario} onChange={handleNfFiltroChange} style={{ width:'100%', padding:'9px 10px', borderRadius:'8px', border:'1px solid #d1d5db', boxSizing:'border-box' }}>
+                      <option value="">Todas</option>
+                      {membrosAtivos.map(m => (
+                        <option key={m.id} value={m.id}>{m.nome}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                <button onClick={handleBuscarPreviaNotaFiscal} disabled={nfBuscando} style={{ padding:'10px 20px', border:'none', background:'#2563eb', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: nfBuscando ? 'default' : 'pointer', opacity: nfBuscando ? 0.7 : 1 }}>
+                  {nfBuscando ? 'Buscando...' : '🔍 Buscar Prévia'}
+                </button>
+
+                {nfPreview && (
+                  <div style={{ marginTop:'24px', borderTop:'1px solid #e5e7eb', paddingTop:'20px' }}>
+                    {nfPreview.eventosSemSerieClassificavel > 0 && (
+                      <div style={{ background:'#fef3c7', border:'1px solid #fde68a', color:'#92400e', padding:'10px 14px', borderRadius:'8px', fontSize:'13px', marginBottom:'16px' }}>
+                        ⚠ {nfPreview.eventosSemSerieClassificavel} evento(s) no período não têm Série classificável em EF2/EM — revise manualmente.
+                      </div>
+                    )}
+
+                    {nfPreview.segmentos.length === 0 && (
+                      <p style={{ color:'#64748b', fontSize:'13.5px' }}>Nenhum registro encontrado para esse filtro.</p>
+                    )}
+
+                    {nfPreview.segmentos.map(seg => (
+                      <div key={seg.nomeSegmento} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:'1px solid #f1f3f6', fontSize:'13.5px' }}>
+                        <span style={{ fontWeight:'600', color:'#0f172a' }}>{seg.nomeSegmento}</span>
+                        <span style={{ color:'#64748b' }}>{seg.pessoas.length} pessoa(s) · {seg.totalSegmentoHoras.toFixed(1)}h</span>
+                        <span style={{ fontWeight:'700', color:'#0f172a' }}>R$ {seg.totalSegmentoValor.toFixed(2)}</span>
+                      </div>
+                    ))}
+
+                    {nfPreview.segmentos.length > 0 && (
+                      <div style={{ display:'flex', justifyContent:'space-between', padding:'14px 0 20px', fontSize:'15px', fontWeight:'700', color:'#0f172a' }}>
+                        <span>TOTAL GERAL</span>
+                        <span>R$ {nfPreview.totalGeralValor.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <button onClick={handleBaixarNotaFiscalPdf} disabled={nfBaixando} style={{ padding:'10px 20px', border:'none', background:'#27AE60', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: nfBaixando ? 'default' : 'pointer', opacity: nfBaixando ? 0.7 : 1 }}>
+                      {nfBaixando ? 'Gerando...' : '⬇ Baixar PDF'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1127,7 +1286,7 @@ const handleSalvarEdicao = async (e) => {
             <div className="modal-sub">{editMode?'Modifique os parâmetros da prova selecionada.':'Preencha os dados da prova ou aplicação.'}</div>
             <div className="modal-grid">
               <div className="field-grp full"><label>NOME DO EVENTO *</label><input type="text" name="nome" value={eventoFormData.nome} onChange={handleInputChange} placeholder="Ex: Prova de Matemática – 3º Ano"/></div>
-              <div className="field-grp full"><label>SÉRIE / TURMA</label><select name="serie" value={eventoFormData.serie} onChange={handleInputChange}><option value="">Selecione</option><option value="6EF2">6º Ano – EF2</option><option value="7EF2">7º Ano – EF2</option><option value="8EF2">8º Ano – EF2</option><option value="9EF2">9º Ano – EF2</option><option value="1EM">1º Ano – EM</option><option value="2EM">2º Ano – EM</option><option value="3EM">3º Ano – EM</option></select></div>
+              <div className="field-grp full"><label>SÉRIE / TURMA</label><select name="serie" value={eventoFormData.serie} onChange={handleInputChange}><option value="">Selecione</option>{SERIES_EF2.map(s=>(<option key={s.value} value={s.value}>{s.label}</option>))}{SERIES_EM.map(s=>(<option key={s.value} value={s.value}>{s.label}</option>))}</select></div>
               <div className="field-grp"><label>DATA *</label><input type="date" name="data" value={eventoFormData.data} onChange={handleInputChange}/></div>
               <div className="field-grp"><label>HORÁRIO *</label><input type="time" name="horario" value={eventoFormData.horario} onChange={handleInputChange}/></div>
               <div className="field-grp"><label>DURAÇÃO (HORAS) *</label><input type="number" name="duracao" value={eventoFormData.duracao} onChange={handleInputChange} placeholder="Ex: 4"/></div>

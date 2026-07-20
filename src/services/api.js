@@ -123,4 +123,15 @@ export const usuarioService = {
   }
 };
 
+export const notaFiscalService = {
+  buscarDados: async (params) => {
+    const { data } = await api.get('/nota-fiscal/dados', { params });
+    return data;
+  },
+  baixarPdf: async (params) => {
+    const { data } = await api.get('/nota-fiscal/pdf', { params, responseType: 'blob' });
+    return data;
+  },
+};
+
 export default api;
