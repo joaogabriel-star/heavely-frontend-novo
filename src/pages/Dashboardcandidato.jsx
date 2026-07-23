@@ -40,7 +40,7 @@ export const DashboardCandidato = () => {
   // ─── 5. PERFIL ───────────────────────────────────────────────
   const [perfilFormData, setPerfilFormData] = useState({
     nome: nomeLogado, email: emailLogado,
-    cpf: '', celular: '', chavePix: '', bancoNome: '',
+    cpf: '', celular: '',
     senhaAtual: '', novaSenha: '', confirmarSenha: ''
   });
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
@@ -411,8 +411,6 @@ export const DashboardCandidato = () => {
       const payloadPerfil = {};
       if (perfilFormData.nome?.trim())      payloadPerfil.NomeCompleto = perfilFormData.nome.trim();
       if (perfilFormData.celular?.trim())   payloadPerfil.Celular      = perfilFormData.celular.trim();
-      if (perfilFormData.chavePix?.trim())  payloadPerfil.ChavePix     = perfilFormData.chavePix.trim();
-      if (perfilFormData.bancoNome?.trim()) payloadPerfil.BancoNome    = perfilFormData.bancoNome.trim();
 
       await api.put('/usuarios/perfil', payloadPerfil);
 
@@ -1164,8 +1162,6 @@ export const DashboardCandidato = () => {
                   { label: 'CPF',           name: 'cpf',      type: 'text'  },
                   { label: 'E-MAIL',        name: 'email',    type: 'email' },
                   { label: 'CELULAR',       name: 'celular',  type: 'text'  },
-                  { label: 'CHAVE PIX',     name: 'chavePix', type: 'text'  },
-                  { label: 'BANCO',         name: 'bancoNome',type: 'text'  },
                 ].map(f => (
                   <div key={f.name}>
                     <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', display: 'block', marginBottom: '8px' }}>{f.label}</label>
