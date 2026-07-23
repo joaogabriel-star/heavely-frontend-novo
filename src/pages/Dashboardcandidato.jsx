@@ -182,6 +182,7 @@ export const DashboardCandidato = () => {
 
         let dataFormatada = 'Data não informada';
         let dataPura      = null;
+        let horarioFimPura = null;
 
         if (evento?.dataProva) {
           const d = new Date(evento.dataProva.endsWith('Z') ? evento.dataProva : evento.dataProva + 'Z');
@@ -189,6 +190,11 @@ export const DashboardCandidato = () => {
           if (!isNaN(d.getTime())) {
             dataFormatada = `${d.getDate()} de ${d.toLocaleDateString('pt-BR', { month: 'long' })}, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
           }
+        }
+
+        if (evento?.horarioFim) {
+          const hf = new Date(evento.horarioFim.endsWith('Z') ? evento.horarioFim : evento.horarioFim + 'Z');
+          if (!isNaN(hf.getTime())) horarioFimPura = hf;
         }
 
         // Descobre o status correto a mostrar (Capturando o "Pago")
@@ -202,6 +208,7 @@ export const DashboardCandidato = () => {
           titulo:          evento?.nomeProva || evento?.tituloProva || 'Prova sem título',
           data:            dataFormatada,
           dataPura,
+          horarioFimPura,
           serie:           evento?.serie || 'HIS',
           funcao:          papelEvento,
           status:          statusExibicao,
@@ -214,6 +221,7 @@ export const DashboardCandidato = () => {
 
         const agora = new Date();
         const eventoJaPassou = dataPura && dataPura < agora;
+        const horarioFimJaPassou = horarioFimPura && horarioFimPura < agora;
 
         // SELETOR BLINDADO: Impede sumiços!
         if (statusDB.toLowerCase() === 'cancelado') {
@@ -221,8 +229,14 @@ export const DashboardCandidato = () => {
         } else if (checkOut || statusDB.toLowerCase() === 'pago') {
           // Fez checkout ou já foi pago -> Vai pro Histórico (Aplicadas)
           historico.push(provaEstruturada);
+        } else if (checkIn && horarioFimJaPassou) {
+          // Fez checkin, NUNCA fez checkout, e o horário da prova já encerrou ->
+          // órfão: não pode ficar preso em "pendente" pra sempre (travaria o ponto
+          // de provas novas). Migra pro Histórico com aviso.
+          provaEstruturada.status = 'Saída Não Registrada';
+          historico.push(provaEstruturada);
         } else if (checkIn) {
-          // Fez checkin mas NÃO fez checkout -> Fica pendente
+          // Fez checkin mas NÃO fez checkout, e a prova ainda está no horário -> Fica pendente
           pendentes.push(provaEstruturada);
 
           // RESTAURA estado do ponto se já bateu entrada hoje
@@ -288,11 +302,24 @@ export const DashboardCandidato = () => {
   const formatarMoeda = (valor) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
+  // ─── HELPER: cor/texto do status em "Provas Aplicadas" ───────
+  const statusAplicadaInfo = (status) => {
+    if (status === 'Saída Não Registrada') {
+      return { cor: '#92400e', texto: '⚠️ Entrada registrada, saída não batida' };
+    }
+    return { cor: status === 'Pago 💰' ? '#16a34a' : '#64748b', texto: status };
+  };
+
   // ─── 10. ID DO EVENTO DE HOJE ────────────────────────────────
   // provaEmAndamento só pode vencer se também for de hoje — senão um check-in
   // aberto e esquecido de outro dia sequestra o ponto pra sempre (achado real
-  // durante teste manual: fica impossível bater ponto em provas novas).
-  const provaEmAndamento = minhasCandidaturas.find(c => c.entrada !== '--:--' && c.saida === '--:--' && c.dataPura && ehHoje(c.dataPura));
+  // durante teste manual: fica impossível bater ponto em provas novas). Também
+  // exige que o HorarioFim ainda não tenha passado — sem isso, um check-in cujo
+  // horário de prova já encerrou continuaria travando idProvaAtiva até o próximo
+  // refetch (carregarMinhasCandidaturas já move esses casos pro Histórico, mas
+  // essa guarda extra cobre o intervalo entre o HorarioFim passar e o refetch
+  // acontecer, já que horaAtual re-renderiza a cada segundo).
+  const provaEmAndamento = minhasCandidaturas.find(c => c.entrada !== '--:--' && c.saida === '--:--' && c.dataPura && ehHoje(c.dataPura) && (!c.horarioFimPura || new Date() < c.horarioFimPura));
   const provaDeHoje = minhasCandidaturas.find(c => c.dataPura && ehHoje(c.dataPura));
   const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
 
@@ -897,8 +924,8 @@ export const DashboardCandidato = () => {
                             <span style={{ display: 'block', background: prova.funcao === 'Ledor' ? '#eff6ff' : '#f3e8ff', color: prova.funcao === 'Ledor' ? '#2563eb' : '#9333ea', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>
                               {prova.funcao}
                             </span>
-                            <span style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: prova.status === 'Pago 💰' ? '#16a34a' : '#64748b' }}>
-                              {prova.status}
+                            <span style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: statusAplicadaInfo(prova.status).cor }}>
+                              {statusAplicadaInfo(prova.status).texto}
                             </span>
                           </td>
                           <td style={{ padding: '16px 24px', color: '#16a34a', fontSize: '14px', fontWeight: '700' }}>
@@ -927,7 +954,7 @@ export const DashboardCandidato = () => {
                         </div>
                         <div className="prova-mobile-data" style={{ fontSize: '13px', color: '#475569', marginBottom: '12px' }}>
                           📅 {prova.data}
-                          <strong style={{ color: prova.status === 'Pago 💰' ? '#16a34a' : '#64748b', display: 'block', marginTop: '4px' }}>Status: {prova.status}</strong>
+                          <strong style={{ color: statusAplicadaInfo(prova.status).cor, display: 'block', marginTop: '4px' }}>Status: {statusAplicadaInfo(prova.status).texto}</strong>
                         </div>
                         
                         <div className="prova-mobile-bottom" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', background: '#f8fafc', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
