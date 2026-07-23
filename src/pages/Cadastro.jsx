@@ -42,6 +42,10 @@ export const Cadastro = () => {
 
     endereco: '',
 
+    chavePix: '',
+
+    bancoNome: '',
+
     escolaridadeNivel: '',
 
     escolaridadeStatus: '',
@@ -231,6 +235,10 @@ const handleSubmit = async (e) => {
           ExperienciaProfissional: formData.experienciaProfissional || "Nenhuma",
 
           Materias: formData.materias || "Geral",
+
+          ChavePix: formData.chavePix,
+
+          BancoNome: formData.bancoNome,
 
           Senha: formData.senha,
 
@@ -563,6 +571,26 @@ const handleSubmit = async (e) => {
                         <label>ENDEREÇO</label>
 
                         <input type="text" name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Rua, número, bairro, cidade" />
+
+                      </div>
+
+
+
+                      <div className="input-group">
+
+                        <label>CHAVE PIX *</label>
+
+                        <input type="text" name="chavePix" value={formData.chavePix} onChange={handleChange} placeholder="CPF, e-mail, telefone ou chave aleatória" required />
+
+                      </div>
+
+
+
+                      <div className="input-group">
+
+                        <label>BANCO *</label>
+
+                        <input type="text" name="bancoNome" value={formData.bancoNome} onChange={handleChange} placeholder="Nome do banco" required />
 
                       </div>
 
