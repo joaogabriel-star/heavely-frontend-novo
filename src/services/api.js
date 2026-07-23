@@ -37,6 +37,18 @@ export const authService = {
     });
     return response.data;
   },
+  esqueciSenha: async (email) => {
+    const response = await api.post('/auth/esqueci-senha', { email });
+    return response.data;
+  },
+  validarTokenReset: async (token) => {
+    const response = await api.get(`/auth/validar-token-reset/${token}`);
+    return response.data;
+  },
+  redefinirSenha: async (token, novaSenha, confirmarNovaSenha) => {
+    const response = await api.post('/auth/redefinir-senha', { token, novaSenha, confirmarNovaSenha });
+    return response.data;
+  },
 };
 
 

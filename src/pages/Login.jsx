@@ -118,6 +118,12 @@ export const Login = () => {
               onChange={(e) => setSenha(e.target.value)}
             />
 
+            <div style={{ textAlign: 'right', marginBottom: '12px' }}>
+              <Link to="/esqueci-senha" style={{ fontSize: '13px', color: '#64748b' }}>
+                Esqueci minha senha
+              </Link>
+            </div>
+
             <button type="submit" className="btn btn-primary" disabled={carregando}>
               {carregando ? 'Entrando...' : 'Entrar'}
             </button>
