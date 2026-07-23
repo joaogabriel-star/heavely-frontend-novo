@@ -80,7 +80,10 @@ export const DashboardCoord = () => {
     } catch (error) { console.error('Erro ao carregar membros:', error); }
   };
 
-  const carregarDadosIniciais = async () => {
+  // Só a lista de eventos (o que alimenta a barra de ocupação) — separada do
+  // resto pra poder rodar sozinha no intervalo de 30s, sem bater em
+  // /usuarios/pendentes e /usuarios/ativos sem necessidade.
+  const carregarEventosAdmin = async () => {
     try {
       const dadosEventos = await eventoService.listarEventos();
       const agora = new Date();
@@ -116,6 +119,12 @@ export const DashboardCoord = () => {
                 :                                  'Agendado',
         };
       }));
+    } catch (error) { console.error('Erro ao carregar eventos:', error); }
+  };
+
+  const carregarDadosIniciais = async () => {
+    try {
+      await carregarEventosAdmin();
 
       const dadosPendentes = await usuarioService.listarPendentes();
       setCandidatosPendentes(dadosPendentes.map(c => ({
@@ -138,7 +147,15 @@ export const DashboardCoord = () => {
     } catch (error) { console.error('Erro ao carregar dados:', error); }
   };
 
-  useEffect(() => { carregarDadosIniciais(); }, []);
+  useEffect(() => {
+    carregarDadosIniciais();
+
+    const radarDeEventos = setInterval(() => {
+      carregarEventosAdmin();
+    }, 30000);
+
+    return () => clearInterval(radarDeEventos);
+  }, []);
 
   // ── HANDLERS GERAIS ────────────────────────────────────────────
   const handlePerfilChange = (e) => { const { name, value } = e.target; setPerfilFormData(prev => ({ ...prev, [name]: value })); };
