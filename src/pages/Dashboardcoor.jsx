@@ -845,7 +845,15 @@ const handleSalvarEdicao = async (e) => {
                   ) : (
                     alocacoesEvento.map((m, i, arr) => (
                       <div key={m.id} style={{ display:'grid', gridTemplateColumns:'1fr 120px 180px 100px 100px', gap:'16px', padding:'14px 22px', alignItems:'center', borderBottom: i < arr.length-1 ? '1px solid #f1f5f9' : 'none' }}>
-                        <div><div style={{ fontWeight:'600', color:'#0f172a', fontSize:'13.5px' }}>{m.nome}</div><div style={{ fontSize:'12px', color:'#94a3b8' }}>{m.email}</div></div>
+                        <div>
+                          <div style={{ fontWeight:'600', color:'#0f172a', fontSize:'13.5px' }}>{m.nome}</div>
+                          <div style={{ fontSize:'12px', color:'#94a3b8' }}>{m.email}</div>
+                          {m.horarioEntrada && !m.horarioSaida && (
+                            <span style={{ display:'inline-block', marginTop:'4px', background:'#fef3c7', color:'#92400e', padding:'2px 8px', borderRadius:'10px', fontSize:'10.5px', fontWeight:'700' }}>
+                              ⚠️ Sem saída registrada
+                            </span>
+                          )}
+                        </div>
                         <span style={{ background: m.funcao==='Ledor'?'#eff6ff':'#f3e8ff', color: m.funcao==='Ledor'?'#2563eb':'#9333ea', padding:'3px 10px', borderRadius:'12px', fontSize:'12px', fontWeight:'700', display:'inline-block' }}>{m.funcao}</span>
                         <span style={{ fontSize:'13px', color:'#374151' }}>{m.sala || <span style={{ color:'#94a3b8', fontStyle:'italic' }}>—</span>}</span>
                         <span style={{ fontFamily:'monospace', fontSize:'13px', fontWeight:'600', color: m.horarioEntrada ? '#16a34a' : '#94a3b8' }}>{m.horarioEntrada || '—'}</span>
