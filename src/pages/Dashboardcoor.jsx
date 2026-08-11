@@ -4,6 +4,7 @@ import api, { eventoService, usuarioService, pontoService, notaFiscalService } f
 import { LayoutDashboard, UserCheck, Users, FileText, User } from 'lucide-react';
 import { useToast } from '../context/ToastContext.jsx';
 import { useAsyncAction } from '../hooks/useAsyncAction.js';
+import { useAuth } from '../context/Authcontext.jsx';
 
 // Fonte única dos valores de Série — reaproveitada no formulário de evento e no
 // filtro da Nota Fiscal, pra nunca ter duas listas que podem ficar dessincronizadas.
@@ -23,6 +24,7 @@ export const DashboardCoord = () => {
 
   const { showToast } = useToast();
   const { run, isLoading } = useAsyncAction();
+  const { logout } = useAuth();
   const [activeTab, setActiveTab]         = useState('dashboard');
   const [activeSubTab, setActiveSubTab]   = useState('todos');
   const [isModalOpen, setIsModalOpen]     = useState(false);
@@ -637,6 +639,7 @@ const handleSalvarEdicao = () => {
               <span className="nav-user-role">Coordenação</span>
             </div>
           </button>
+          <button className="nav-btn" onClick={logout} title="Sair">Sair</button>
         </div>
       </nav>
 
