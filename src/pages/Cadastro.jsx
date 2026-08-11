@@ -6,6 +6,7 @@ import '../styles/Cadastro.css';
 
 import { authService } from '../services/api';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAsyncAction } from '../hooks/useAsyncAction.js';
 
 
 
@@ -23,7 +24,7 @@ export const Cadastro = () => {
 
   const [erro, setErro] = useState('');
 
-  const [carregando, setCarregando] = useState(false);
+  const { run, isLoading } = useAsyncAction();
 
   const [arquivoNadaConsta, setArquivoNadaConsta] = useState(null);
 
@@ -141,7 +142,7 @@ export const Cadastro = () => {
 
   // Função disparada ao clicar em "Criar minha conta"
 
-const handleSubmit = async (e) => {
+const handleSubmit = (e) => {
 
     e.preventDefault();
 
@@ -171,9 +172,7 @@ const handleSubmit = async (e) => {
 
 
 
-    setCarregando(true);
-
-
+    run(async () => {
 
     try {
 
@@ -305,11 +304,9 @@ const handleSubmit = async (e) => {
 
       setErro(error.response?.data?.mensagem || error.message || 'Erro ao realizar o cadastro. Tente novamente.');
 
-    } finally {
-
-      setCarregando(false);
-
     }
+
+    });
 
   };
 
@@ -845,9 +842,9 @@ const handleSubmit = async (e) => {
 
                 <div className="submit-area mt-40">
 
-                  <button type="submit" disabled={carregando} className="btn-primary">
+                  <button type="submit" disabled={isLoading()} className="btn-primary">
 
-                    {carregando ? 'Criando conta...' : 'Criar minha conta →'}
+                    {isLoading() ? 'Criando conta...' : 'Criar minha conta →'}
 
                   </button>
 

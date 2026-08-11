@@ -5,9 +5,11 @@ import api, { eventoService, pontoService } from '../services/api';
 import { LayoutDashboard, UserCheck, Users, FileText, User, FileCheck, Search, Wallet, Clock} from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAsyncAction } from '../hooks/useAsyncAction.js';
 
 export const DashboardCandidato = () => {
   const { showToast } = useToast();
+  const { run, isLoading } = useAsyncAction();
 
   // ─── 1. NAVEGAÇÃO ────────────────────────────────────────────
   const [activeTab,    setActiveTab]    = useState('provas');
@@ -45,8 +47,6 @@ export const DashboardCandidato = () => {
     cpf: '', celular: '',
     senhaAtual: '', novaSenha: '', confirmarSenha: ''
   });
-  const [salvandoPerfil, setSalvandoPerfil] = useState(false);
-
   // ─── 6. PONTO ────────────────────────────────────────────────
   const [horaAtual,        setHoraAtual]       = useState(new Date());
   const [statusPonto,      setStatusPonto]     = useState('entrada');
@@ -326,7 +326,7 @@ export const DashboardCandidato = () => {
   const idProvaAtiva = provaEmAndamento?.id || provaDeHoje?.id || null;
 
   // ─── 11. BATER PONTO ─────────────────────────────────────────
-  const handleRegistrarPonto = async () => {
+  const handleRegistrarPonto = () => {
     if (!idProvaAtiva) {
       const primeiraConfirmada = minhasCandidaturas.find(c => c.status === 'Confirmado');
       if (!primeiraConfirmada) {
@@ -337,28 +337,30 @@ export const DashboardCandidato = () => {
 
     const idParaUsar = idProvaAtiva || minhasCandidaturas.find(c => c.status === 'Confirmado')?.id;
 
-    try {
-      if (statusPonto === 'entrada') {
-        await pontoService.registrarEntrada(idParaUsar);
+    run(async () => {
+      try {
+        if (statusPonto === 'entrada') {
+          await pontoService.registrarEntrada(idParaUsar);
 
-        setRegistrosDeHoje(prev => [...prev, {
-          tipo:   'entrada',
-          hora:   horaAtual.toLocaleTimeString('pt-BR'),
-          status: '✅ Entrada salva no banco de dados',
-        }]);
-        setStatusPonto('saida');
-        carregarMinhasCandidaturas();
-      } else {
-        scaneandoTokenRef.current = false;
-        setScaneando(true);
+          setRegistrosDeHoje(prev => [...prev, {
+            tipo:   'entrada',
+            hora:   horaAtual.toLocaleTimeString('pt-BR'),
+            status: '✅ Entrada salva no banco de dados',
+          }]);
+          setStatusPonto('saida');
+          carregarMinhasCandidaturas();
+        } else {
+          scaneandoTokenRef.current = false;
+          setScaneando(true);
+        }
+      } catch (error) {
+        console.error('Erro checkin:', error.response?.data);
+        const msg = error.response?.data?.mensagem
+          || error.response?.data?.message
+          || 'Erro ao registrar entrada. Você já registrou hoje?';
+        showToast(msg, 'error');
       }
-    } catch (error) {
-      console.error('Erro checkin:', error.response?.data);
-      const msg = error.response?.data?.mensagem
-        || error.response?.data?.message
-        || 'Erro ao registrar entrada. Você já registrou hoje?';
-      showToast(msg, 'error');
-    }
+    }, 'registrar-ponto');
   };
 
   const confirmarScaneamentoQRCode = async (tokenQRCode) => {
@@ -400,7 +402,7 @@ export const DashboardCandidato = () => {
     setPerfilFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSalvarPerfil = async () => {
+  const handleSalvarPerfil = () => {
     if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
       showToast('As senhas não coincidem!', 'warning'); return;
     }
@@ -408,7 +410,7 @@ export const DashboardCandidato = () => {
       showToast('Informe sua senha atual para definir uma nova senha.', 'warning'); return;
     }
 
-    setSalvandoPerfil(true);
+    run(async () => {
     try {
       const payloadPerfil = {};
       if (perfilFormData.nome?.trim())      payloadPerfil.NomeCompleto = perfilFormData.nome.trim();
@@ -429,9 +431,8 @@ export const DashboardCandidato = () => {
     } catch (error) {
       const msg = error.response?.data?.mensagem || 'Erro ao atualizar perfil.';
       showToast(msg, 'error');
-    } finally {
-      setSalvandoPerfil(false);
     }
+    });
   };
 
   // ─── 13. CANDIDATURA ─────────────────────────────────────────
@@ -1060,9 +1061,9 @@ export const DashboardCandidato = () => {
                     <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '32px', fontWeight: '500' }}>
                       {formatarData(horaAtual)}
                     </div>
-                    <button onClick={handleRegistrarPonto} disabled={scaneando || !idProvaAtiva}
-                      style={{ width: '100%', background: (scaneando || !idProvaAtiva) ? '#94a3b8' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', cursor: (scaneando || !idProvaAtiva) ? 'default' : 'pointer', letterSpacing: '0.5px' }}>
-                      {statusPonto === 'entrada' ? 'REGISTRAR PONTO' : 'REGISTRAR SAÍDA'}
+                    <button onClick={handleRegistrarPonto} disabled={scaneando || !idProvaAtiva || isLoading('registrar-ponto')}
+                      style={{ width: '100%', background: (scaneando || !idProvaAtiva || isLoading('registrar-ponto')) ? '#94a3b8' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', cursor: (scaneando || !idProvaAtiva || isLoading('registrar-ponto')) ? 'default' : 'pointer', letterSpacing: '0.5px' }}>
+                      {isLoading('registrar-ponto') ? 'Registrando...' : (statusPonto === 'entrada' ? 'REGISTRAR PONTO' : 'REGISTRAR SAÍDA')}
                     </button>
                     {statusPonto === 'saida' && !scaneando && (
                       <p style={{ marginTop: '16px', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
@@ -1188,8 +1189,8 @@ export const DashboardCandidato = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                <button onClick={handleSalvarPerfil} disabled={salvandoPerfil} style={{ padding: '12px 24px', border: 'none', background: '#2563eb', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', cursor: salvandoPerfil ? 'default' : 'pointer', opacity: salvandoPerfil ? 0.7 : 1 }}>
-                  {salvandoPerfil ? 'Salvando...' : 'Salvar Alterações'}
+                <button onClick={handleSalvarPerfil} disabled={isLoading()} style={{ padding: '12px 24px', border: 'none', background: '#2563eb', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', cursor: isLoading() ? 'default' : 'pointer', opacity: isLoading() ? 0.7 : 1 }}>
+                  {isLoading() ? 'Salvando...' : 'Salvar Alterações'}
                 </button>
               </div>
             </div>
@@ -1210,7 +1211,9 @@ export const DashboardCandidato = () => {
             </div>
             <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button className="btn-outline" onClick={() => setProvaSelecionada(null)}>Cancelar</button>
-              <button className="btn-primary" onClick={confirmarCandidatura}>Confirmar →</button>
+              <button className="btn-primary" onClick={() => run(confirmarCandidatura, 'confirmar-candidatura')} disabled={isLoading('confirmar-candidatura')}>
+                {isLoading('confirmar-candidatura') ? 'Confirmando...' : 'Confirmar →'}
+              </button>
             </div>
           </div>
         </div>
@@ -1236,7 +1239,9 @@ export const DashboardCandidato = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button onClick={() => setCandidaturaParaCancelar(null)} style={{ padding: '10px 16px', border: '1px solid #d1d5db', background: '#fff', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Manter inscrição</button>
-              <button onClick={efetivarCancelamento} style={{ padding: '10px 16px', border: 'none', background: '#fee2e2', borderRadius: '6px', fontSize: '14px', fontWeight: '600', color: '#b91c1c', cursor: 'pointer' }}>Confirmar Cancelamento</button>
+              <button onClick={() => run(efetivarCancelamento, 'cancelar-candidatura')} disabled={isLoading('cancelar-candidatura')} style={{ padding: '10px 16px', border: 'none', background: '#fee2e2', borderRadius: '6px', fontSize: '14px', fontWeight: '600', color: '#b91c1c', cursor: 'pointer' }}>
+                {isLoading('cancelar-candidatura') ? 'Cancelando...' : 'Confirmar Cancelamento'}
+              </button>
             </div>
           </div>
         </div>
@@ -1269,7 +1274,9 @@ export const DashboardCandidato = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button onClick={fecharModalRelato} style={{ padding: '12px 24px', border: '1px solid #e2e8f0', background: '#fff', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={enviarRelato} style={{ padding: '12px 24px', border: 'none', background: '#2563eb', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', cursor: 'pointer' }}>Enviar Relato</button>
+              <button onClick={() => run(enviarRelato, 'enviar-relato')} disabled={isLoading('enviar-relato')} style={{ padding: '12px 24px', border: 'none', background: '#2563eb', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: '#fff', cursor: 'pointer' }}>
+                {isLoading('enviar-relato') ? 'Enviando...' : 'Enviar Relato'}
+              </button>
             </div>
           </div>
         </div>

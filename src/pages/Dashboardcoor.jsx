@@ -3,6 +3,7 @@ import '../styles/Dashboardcoor.css';
 import api, { eventoService, usuarioService, pontoService, notaFiscalService } from '../services/api';
 import { LayoutDashboard, UserCheck, Users, FileText, User } from 'lucide-react';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAsyncAction } from '../hooks/useAsyncAction.js';
 
 // Fonte única dos valores de Série — reaproveitada no formulário de evento e no
 // filtro da Nota Fiscal, pra nunca ter duas listas que podem ficar dessincronizadas.
@@ -21,10 +22,11 @@ const SERIES_EM = [
 export const DashboardCoord = () => {
 
   const { showToast } = useToast();
+  const { run, isLoading } = useAsyncAction();
   const [activeTab, setActiveTab]         = useState('dashboard');
   const [activeSubTab, setActiveSubTab]   = useState('todos');
   const [isModalOpen, setIsModalOpen]     = useState(false);
-  const [eventos, setEventos]             = useState([]); 
+  const [eventos, setEventos]             = useState([]);
   const [membrosAtivos, setMembrosAtivos] = useState([]);
   const [candidatosPendentes, setCandidatosPendentes] = useState([]);
   const [alteracoesPendentes, setAlteracoesPendentes] = useState({});
@@ -32,7 +34,6 @@ export const DashboardCoord = () => {
   const [alocacoesEvento, setAlocacoesEvento]         = useState([]);
   const [editMode, setEditMode]                       = useState(false);
   const [idEventoEditando, setIdEventoEditando]       = useState(null);
-  const [isSubmitting, setIsSubmitting]               = useState(false);
   const [cancelamentosEvento,   setCancelamentosEvento]   = useState([]);
   const [justificativasAbertas, setJustificativasAbertas] = useState(new Set());
   const [activeSubTabRelatorio, setActiveSubTabRelatorio] = useState('qrcode');
@@ -40,15 +41,11 @@ export const DashboardCoord = () => {
   const [qrSegundos,    setQrSegundos]    = useState(0);
   const [qrModalAberto, setQrModalAberto] = useState(false);
   const [qrFullscreen,  setQrFullscreen]  = useState(false);
-  const [qrCarregando,  setQrCarregando]  = useState(false);
   const qrTimerRef = useRef(null);
   const [relatorioModalAberto, setRelatorioModalAberto] = useState(false);
   const [relatorioForm, setRelatorioForm] = useState({ tipoPagamento: 'PorHora', valor: '' });
-  const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
   const [nfFiltro, setNfFiltro] = useState({ dataInicio: '', dataFim: '', segmento: '', serie: '', idUsuario: '' });
   const [nfPreview, setNfPreview] = useState(null);
-  const [nfBuscando, setNfBuscando] = useState(false);
-  const [nfBaixando, setNfBaixando] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('avatarUsuario') || '');
   const [eventoFormData, setEventoFormData] = useState({
     nome: '', serie: '', data: '', horario: '',
@@ -62,7 +59,6 @@ export const DashboardCoord = () => {
     novaSenha:      '',
     confirmarSenha: '',
   });
-  const [salvandoPerfil, setSalvandoPerfil] = useState(false);
   const nomeLogado = localStorage.getItem('nomeUsuario') || 'Coordenador';
   const iniciais   = nomeLogado && nomeLogado !== 'Coordenador'
     ? nomeLogado.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
@@ -175,7 +171,7 @@ export const DashboardCoord = () => {
     }
   };
 
-  const handleSalvarPerfil = async () => {
+  const handleSalvarPerfil = () => {
     if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
       showToast('As senhas não coincidem!', 'warning'); return;
     }
@@ -183,7 +179,7 @@ export const DashboardCoord = () => {
       showToast('Informe sua senha atual para definir uma nova senha.', 'warning'); return;
     }
 
-    setSalvandoPerfil(true);
+    run(async () => {
     try {
       const payloadPerfil = {};
       if (perfilFormData.nome?.trim())     payloadPerfil.NomeCompleto = perfilFormData.nome.trim();
@@ -204,9 +200,8 @@ export const DashboardCoord = () => {
     } catch (error) {
       const msg = error.response?.data?.mensagem || 'Erro ao atualizar perfil.';
       showToast(msg, 'error');
-    } finally {
-      setSalvandoPerfil(false);
     }
+    });
   };
 
   const getAvatarColor = (name) => {
@@ -249,13 +244,8 @@ export const DashboardCoord = () => {
   };
 
 // ── EVENTOS: CRIAR ─────────────────────────────────────────────
-  const handleCriarEvento = async (e) => {
-    e.preventDefault();
-
-    // 1. Trava anti duplo-clique
-    if (isSubmitting) return;
-
-    // 2. Trava anti evento duplicado (Compara Nome e a Data Exata)
+  const handleCriarEvento = () => {
+    // Trava anti evento duplicado (Compara Nome e a Data Exata)
     const [ano, mes, dia] = eventoFormData.data.split('-');
     const [hora, min]     = eventoFormData.horario.split(':');
     
@@ -272,9 +262,7 @@ export const DashboardCoord = () => {
       return;
     }
 
-    // 3. Bloqueia o botão e inicia a criação
-    setIsSubmitting(true);
-
+    run(async () => {
     try {
       const dataInicioExata = `${eventoFormData.data}T${eventoFormData.horario}:00`;
 
@@ -306,10 +294,8 @@ export const DashboardCoord = () => {
       const msg = error.response?.data?.mensagem || (error.response?.data?.errors ? JSON.stringify(error.response?.data?.errors) : 'Verifique os dados e tente novamente.');
       showToast(`Erro ao criar evento: ${msg}`, 'error');
       console.error(error);
-    } finally {
-      // 4. Liberta o botão independentemente de dar erro ou sucesso
-      setIsSubmitting(false);
     }
+    }, 'evento-modal');
   };
 
   // ── EVENTOS: DETALHES ──────────────────────────────────
@@ -415,8 +401,8 @@ export const DashboardCoord = () => {
   };
 
   // ── EDICAO CORRIGIDA ──────────────────────
-const handleSalvarEdicao = async (e) => {
-    e.preventDefault();
+const handleSalvarEdicao = () => {
+    run(async () => {
     try {
       const [ano, mes, dia] = eventoFormData.data.split('-');
       const [hora, min]     = eventoFormData.horario.split(':');
@@ -450,6 +436,7 @@ const handleSalvarEdicao = async (e) => {
       console.error("Erro ao salvar edição:", error);
       showToast("Erro ao editar.", 'error');
     }
+    }, 'evento-modal');
   };
 
   const handleCancelarInscricao = async (inscrito) => {
@@ -483,9 +470,9 @@ const handleSalvarEdicao = async (e) => {
     return Math.max(0, Math.floor((meiaNoite.getTime() - agora.getTime()) / 1000));
   };
 
-  const abrirQrEvento = async (ev) => {
+  const abrirQrEvento = (ev) => {
     if (qrTimerRef.current) clearInterval(qrTimerRef.current);
-    setQrCarregando(true);
+    run(async () => {
     try {
       const resposta = await pontoService.obterQRCode(ev.id);
       setQrInfo({ eventoId: ev.id, nome: ev.titulo, data: ev.data, token: resposta.token, expiraEm: resposta.expiraEm });
@@ -497,9 +484,8 @@ const handleSalvarEdicao = async (e) => {
     } catch (error) {
       console.error('Erro ao gerar QR Code:', error);
       showToast(error.response?.data?.mensagem || 'Erro ao gerar QR Code.', 'error');
-    } finally {
-      setQrCarregando(false);
     }
+    }, `qr-${ev.id}`);
   };
 
   const fecharQrModal = () => { setQrModalAberto(false); setQrFullscreen(false); if (qrTimerRef.current) clearInterval(qrTimerRef.current); };
@@ -511,8 +497,8 @@ const handleSalvarEdicao = async (e) => {
     setRelatorioModalAberto(true);
   };
 
-  const handleBaixarRelatorio = async () => {
-    setGerandoRelatorio(true);
+  const handleBaixarRelatorio = () => {
+    run(async () => {
     try {
       const params = { TipoPagamento: relatorioForm.tipoPagamento };
       if (relatorioForm.tipoPagamento === 'PorHora') params.ValorPorHora = relatorioForm.valor || 0;
@@ -540,9 +526,8 @@ const handleSalvarEdicao = async (e) => {
         msg = error.response.data.mensagem;
       }
       showToast(msg, 'error');
-    } finally {
-      setGerandoRelatorio(false);
     }
+    }, 'relatorio-pdf');
   };
 
   // ── NOTA FISCAL AGREGADA ─────────────────────────────────────────
@@ -576,23 +561,22 @@ const handleSalvarEdicao = async (e) => {
     return true;
   };
 
-  const handleBuscarPreviaNotaFiscal = async () => {
+  const handleBuscarPreviaNotaFiscal = () => {
     if (!validarPeriodoNf()) return;
-    setNfBuscando(true);
+    run(async () => {
     try {
       const dados = await notaFiscalService.buscarDados(montarParamsNf());
       setNfPreview(dados);
     } catch (error) {
       showToast(error.response?.data?.mensagem || 'Erro ao buscar prévia da Nota Fiscal.', 'error');
       setNfPreview(null);
-    } finally {
-      setNfBuscando(false);
     }
+    }, 'nf-previa');
   };
 
-  const handleBaixarNotaFiscalPdf = async () => {
+  const handleBaixarNotaFiscalPdf = () => {
     if (!validarPeriodoNf()) return;
-    setNfBaixando(true);
+    run(async () => {
     try {
       const blob = await notaFiscalService.baixarPdf(montarParamsNf());
       const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
@@ -614,9 +598,8 @@ const handleSalvarEdicao = async (e) => {
         msg = error.response.data.mensagem;
       }
       showToast(msg, 'error');
-    } finally {
-      setNfBaixando(false);
     }
+    }, 'nf-pdf');
   };
 
   const totalAgendados  = eventos.filter(e => e.status === 'Agendado').length;
@@ -759,8 +742,8 @@ const handleSalvarEdicao = async (e) => {
                                     </span>
                                   </td>
                                   <td>
-                                    <button onClick={() => abrirDetalhesEvento(ev)} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-                                      Detalhes →
+                                    <button onClick={() => run(() => abrirDetalhesEvento(ev), `detalhes-${ev.id}`)} disabled={isLoading(`detalhes-${ev.id}`)} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+                                      {isLoading(`detalhes-${ev.id}`) ? 'Carregando...' : 'Detalhes →'}
                                     </button>
                                   </td>
                                 </tr>
@@ -805,7 +788,7 @@ const handleSalvarEdicao = async (e) => {
                                     </div>
                                     <span className="prova-mobile-vagas">{ocupacao}/{total}</span>
                                   </div>
-                                  <button onClick={() => abrirDetalhesEvento(ev)} className="btn-candidatar-mobile">Detalhes →</button>
+                                  <button onClick={() => run(() => abrirDetalhesEvento(ev), `detalhes-${ev.id}`)} disabled={isLoading(`detalhes-${ev.id}`)} className="btn-candidatar-mobile">{isLoading(`detalhes-${ev.id}`) ? 'Carregando...' : 'Detalhes →'}</button>
                                 </div>
                               </div>
                             );
@@ -960,7 +943,7 @@ const handleSalvarEdicao = async (e) => {
                   </div>
                   <div style={{ display:'flex', gap:'12px' }}>
                     <button onClick={abrirModalEdicao} style={{ padding:'10px 20px', border:'1px solid #d1d5db', background:'#fff', borderRadius:'8px', color:'#475569', fontWeight:'600', cursor:'pointer' }}>Editar Evento</button>
-                    <button onClick={handlePublicarSalas} style={{ padding:'10px 20px', border:'none', background:'#2563eb', borderRadius:'8px', color:'#fff', fontWeight:'600', cursor:'pointer' }}>Publicar Salas</button>
+                    <button onClick={() => run(handlePublicarSalas, 'publicar-salas')} disabled={isLoading('publicar-salas')} style={{ padding:'10px 20px', border:'none', background:'#2563eb', borderRadius:'8px', color:'#fff', fontWeight:'600', cursor:'pointer' }}>{isLoading('publicar-salas') ? 'Publicando...' : 'Publicar Salas'}</button>
                   </div>
                 </div>
                 <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', padding:'24px', marginBottom:'24px' }}>
@@ -997,7 +980,7 @@ const handleSalvarEdicao = async (e) => {
                             </td>
                             <td style={{ padding:'16px 0', textAlign:'right' }}>
                               {candidato.status === 'Confirmado' && (
-                                <button onClick={() => handleCancelarInscricao(candidato)} style={{ background:'none', border:'none', color:'#ef4444', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}>Cancelar Inscrição</button>
+                                <button onClick={() => run(() => handleCancelarInscricao(candidato), `cancelar-inscricao-${candidato.id}`)} disabled={isLoading(`cancelar-inscricao-${candidato.id}`)} style={{ background:'none', border:'none', color:'#ef4444', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}>{isLoading(`cancelar-inscricao-${candidato.id}`) ? 'Cancelando...' : 'Cancelar Inscrição'}</button>
                               )}
                             </td>
                           </tr>
@@ -1030,8 +1013,8 @@ const handleSalvarEdicao = async (e) => {
                           <div className="aprov-meta">Cadastrado em {candidato.dataCadastro}</div>
                         </div>
                         <div className="aprov-actions">
-                          <button className="btn-success-small" onClick={()=>handleAprovarCandidato(candidato.id)}>✓ Aprovar</button>
-                          <button className="btn-danger-small"  onClick={()=>handleRecusarCandidato(candidato.id)}>✕ Recusar</button>
+                          <button className="btn-success-small" onClick={()=>run(() => handleAprovarCandidato(candidato.id), `candidato-${candidato.id}`)} disabled={isLoading(`candidato-${candidato.id}`)}>{isLoading(`candidato-${candidato.id}`) ? '...' : '✓ Aprovar'}</button>
+                          <button className="btn-danger-small"  onClick={()=>run(() => handleRecusarCandidato(candidato.id), `candidato-${candidato.id}`)} disabled={isLoading(`candidato-${candidato.id}`)}>{isLoading(`candidato-${candidato.id}`) ? '...' : '✕ Recusar'}</button>
                         </div>
                       </div>
                       <div className="aprov-fields">
@@ -1080,7 +1063,7 @@ const handleSalvarEdicao = async (e) => {
                   </div>
                   <div className="members-footer">
                     <button className="btn-outline" onClick={()=>setAlteracoesPendentes({})}>Cancelar</button>
-                    <button className="btn-primary" onClick={handleSalvarAlteracoes} disabled={Object.keys(alteracoesPendentes).length===0}>✓ Salvar Alterações</button>
+                    <button className="btn-primary" onClick={() => run(handleSalvarAlteracoes, 'salvar-membros')} disabled={Object.keys(alteracoesPendentes).length===0 || isLoading('salvar-membros')}>{isLoading('salvar-membros') ? 'Salvando...' : '✓ Salvar Alterações'}</button>
                   </div>
                 </>
               )}
@@ -1121,7 +1104,7 @@ const handleSalvarEdicao = async (e) => {
                   <div className="field-grp" style={{ gridColumn:'1/-1' }}><label>NOVA SENHA</label><input type="password" name="novaSenha" value={perfilFormData.novaSenha} onChange={handlePerfilChange} placeholder="Deixe em branco para não alterar"/></div>
                   <div className="field-grp" style={{ gridColumn:'1/-1' }}><label>CONFIRMAR SENHA</label><input type="password" name="confirmarSenha" value={perfilFormData.confirmarSenha} onChange={handlePerfilChange} placeholder="Repita a nova senha"/></div>
                 </div>
-                <div style={{ display:'flex', gap:'10px', marginTop:'20px' }}><button className="btn-outline" disabled={salvandoPerfil}>Cancelar</button><button className="btn-primary" onClick={handleSalvarPerfil} disabled={salvandoPerfil}>{salvandoPerfil ? 'Salvando...' : 'Salvar Alterações'}</button></div>
+                <div style={{ display:'flex', gap:'10px', marginTop:'20px' }}><button className="btn-outline" disabled={isLoading()}>Cancelar</button><button className="btn-primary" onClick={handleSalvarPerfil} disabled={isLoading()}>{isLoading() ? 'Salvando...' : 'Salvar Alterações'}</button></div>
               </div>
             </div>
           </div>
@@ -1168,7 +1151,7 @@ const handleSalvarEdicao = async (e) => {
                               <td style={{ fontSize:'13.5px', color:'#334155', fontFamily:'monospace' }}>{ev.data}</td>
                               <td style={{ fontSize:'13.5px', color:'#334155' }}>{ev.vagasPreenchidas}/{ev.vagasTotais}</td>
                               <td><span style={{ backgroundColor: ev.status==='Concluído'?'#d1fae5':ev.status==='Cancelado'?'#fee2e2':'#e0e7ff', color: ev.status==='Concluído'?'#065f46':ev.status==='Cancelado'?'#991b1b':'#4338ca', padding:'4px 12px', borderRadius:'9999px', fontSize:'12px', fontWeight:'500' }}>{ev.status}</span></td>
-                              <td>{ev.status==='Cancelado'?(<span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>):(<button onClick={()=>abrirQrEvento(ev)} disabled={qrCarregando} style={{ background:'#2563eb', color:'#fff', border:'none', padding:'7px 14px', borderRadius:'8px', fontFamily:'inherit', fontSize:'12.5px', fontWeight:'600', cursor: qrCarregando?'default':'pointer', opacity: qrCarregando?0.7:1 }}>⬛ {qrCarregando?'Gerando...':'Gerar QR Code'}</button>)}</td>
+                              <td>{ev.status==='Cancelado'?(<span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>):(<button onClick={()=>abrirQrEvento(ev)} disabled={isLoading(`qr-${ev.id}`)} style={{ background:'#2563eb', color:'#fff', border:'none', padding:'7px 14px', borderRadius:'8px', fontFamily:'inherit', fontSize:'12.5px', fontWeight:'600', cursor: isLoading(`qr-${ev.id}`)?'default':'pointer', opacity: isLoading(`qr-${ev.id}`)?0.7:1 }}>⬛ {isLoading(`qr-${ev.id}`)?'Gerando...':'Gerar QR Code'}</button>)}</td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -1205,8 +1188,8 @@ const handleSalvarEdicao = async (e) => {
                                   {ev.status === 'Cancelado' ? (
                                     <span style={{ fontSize:'12px', color:'#94a3b8', fontStyle:'italic' }}>Evento cancelado</span>
                                   ) : (
-                                    <button onClick={() => abrirQrEvento(ev)} disabled={qrCarregando} className="btn-candidatar-mobile" style={{ background: '#2563eb', color: '#fff', border: 'none', opacity: qrCarregando?0.7:1 }}>
-                                      ⬛ {qrCarregando?'Gerando...':'Gerar QR Code'}
+                                    <button onClick={() => abrirQrEvento(ev)} disabled={isLoading(`qr-${ev.id}`)} className="btn-candidatar-mobile" style={{ background: '#2563eb', color: '#fff', border: 'none', opacity: isLoading(`qr-${ev.id}`)?0.7:1 }}>
+                                      ⬛ {isLoading(`qr-${ev.id}`)?'Gerando...':'Gerar QR Code'}
                                     </button>
                                   )}
                                 </div>
@@ -1262,8 +1245,8 @@ const handleSalvarEdicao = async (e) => {
                   </div>
                 </div>
 
-                <button onClick={handleBuscarPreviaNotaFiscal} disabled={nfBuscando} style={{ padding:'10px 20px', border:'none', background:'#2563eb', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: nfBuscando ? 'default' : 'pointer', opacity: nfBuscando ? 0.7 : 1 }}>
-                  {nfBuscando ? 'Buscando...' : '🔍 Buscar Prévia'}
+                <button onClick={handleBuscarPreviaNotaFiscal} disabled={isLoading('nf-previa')} style={{ padding:'10px 20px', border:'none', background:'#2563eb', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: isLoading('nf-previa') ? 'default' : 'pointer', opacity: isLoading('nf-previa') ? 0.7 : 1 }}>
+                  {isLoading('nf-previa') ? 'Buscando...' : '🔍 Buscar Prévia'}
                 </button>
 
                 {nfPreview && (
@@ -1293,8 +1276,8 @@ const handleSalvarEdicao = async (e) => {
                       </div>
                     )}
 
-                    <button onClick={handleBaixarNotaFiscalPdf} disabled={nfBaixando} style={{ padding:'10px 20px', border:'none', background:'#27AE60', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: nfBaixando ? 'default' : 'pointer', opacity: nfBaixando ? 0.7 : 1 }}>
-                      {nfBaixando ? 'Gerando...' : '⬇ Baixar PDF'}
+                    <button onClick={handleBaixarNotaFiscalPdf} disabled={isLoading('nf-pdf')} style={{ padding:'10px 20px', border:'none', background:'#27AE60', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: isLoading('nf-pdf') ? 'default' : 'pointer', opacity: isLoading('nf-pdf') ? 0.7 : 1 }}>
+                      {isLoading('nf-pdf') ? 'Gerando...' : '⬇ Baixar PDF'}
                     </button>
                   </div>
                 )}
@@ -1330,20 +1313,20 @@ const handleSalvarEdicao = async (e) => {
               <div className="field-grp full"><label>OBSERVAÇÕES</label><input type="text" name="observacoes" value={eventoFormData.observacoes} onChange={handleInputChange} placeholder="Informações adicionais"/></div>
             </div>
             <div className="modal-footer">
-              <button 
-                className="btn-outline" 
+              <button
+                className="btn-outline"
                 onClick={()=>{ setIsModalOpen(false); setEditMode(false); }}
-                disabled={isSubmitting}
+                disabled={isLoading('evento-modal')}
               >
                 Cancelar
               </button>
-              <button 
-                className="btn-primary" 
+              <button
+                className="btn-primary"
                 onClick={editMode ? handleSalvarEdicao : handleCriarEvento}
-                disabled={isSubmitting}
-                style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+                disabled={isLoading('evento-modal')}
+                style={{ opacity: isLoading('evento-modal') ? 0.7 : 1, cursor: isLoading('evento-modal') ? 'not-allowed' : 'pointer' }}
               >
-                {isSubmitting ? 'Salvando...' : (editMode ? 'Salvar Alterações' : 'Criar Evento')}
+                {isLoading('evento-modal') ? 'Salvando...' : (editMode ? 'Salvar Alterações' : 'Criar Evento')}
               </button>
             </div>
           </div>
@@ -1373,7 +1356,7 @@ const handleSalvarEdicao = async (e) => {
             <div style={{ display:'flex', justifyContent:'center', gap:'10px' }}>
               <button onClick={fecharQrModal} style={{ padding:'9px 18px', border:'1.5px solid #e4e7ed', background:'#fff', borderRadius:'8px', fontFamily:'inherit', fontSize:'13px', fontWeight:'500', color:'#374151', cursor:'pointer' }}>Fechar</button>
               <button onClick={()=>setQrFullscreen(true)} style={{ padding:'9px 18px', border:'none', background:'#0d1428', borderRadius:'8px', fontFamily:'inherit', fontSize:'13px', fontWeight:'600', color:'#fff', cursor:'pointer' }}>⛶ Tela Cheia</button>
-              <button onClick={()=>{ if(qrTimerRef.current) clearInterval(qrTimerRef.current); abrirQrEvento(eventos.find(e=>e.id===qrInfo.eventoId)||eventos[0]); }} style={{ padding:'9px 18px', border:'none', background:'#2563eb', borderRadius:'8px', fontFamily:'inherit', fontSize:'13px', fontWeight:'600', color:'#fff', cursor:'pointer' }}>↺ Novo QR</button>
+              <button onClick={()=>{ if(qrTimerRef.current) clearInterval(qrTimerRef.current); abrirQrEvento(eventos.find(e=>e.id===qrInfo.eventoId)||eventos[0]); }} disabled={isLoading(`qr-${qrInfo.eventoId}`)} style={{ padding:'9px 18px', border:'none', background:'#2563eb', borderRadius:'8px', fontFamily:'inherit', fontSize:'13px', fontWeight:'600', color:'#fff', cursor:'pointer', opacity: isLoading(`qr-${qrInfo.eventoId}`)?0.7:1 }}>{isLoading(`qr-${qrInfo.eventoId}`) ? 'Gerando...' : '↺ Novo QR'}</button>
             </div>
           </div>
         </div>
@@ -1414,9 +1397,9 @@ const handleSalvarEdicao = async (e) => {
             </div>
 
             <div style={{ display:'flex', justifyContent:'flex-end', gap:'10px' }}>
-              <button onClick={() => setRelatorioModalAberto(false)} disabled={gerandoRelatorio} style={{ padding:'9px 18px', border:'1.5px solid #e4e7ed', background:'#fff', borderRadius:'8px', fontSize:'13px', fontWeight:'500', color:'#374151', cursor:'pointer' }}>Cancelar</button>
-              <button onClick={handleBaixarRelatorio} disabled={gerandoRelatorio} style={{ padding:'9px 18px', border:'none', background:'#2563eb', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: gerandoRelatorio ? 'default' : 'pointer', opacity: gerandoRelatorio ? 0.7 : 1 }}>
-                {gerandoRelatorio ? 'Gerando...' : '⬇ Baixar PDF'}
+              <button onClick={() => setRelatorioModalAberto(false)} disabled={isLoading('relatorio-pdf')} style={{ padding:'9px 18px', border:'1.5px solid #e4e7ed', background:'#fff', borderRadius:'8px', fontSize:'13px', fontWeight:'500', color:'#374151', cursor:'pointer' }}>Cancelar</button>
+              <button onClick={handleBaixarRelatorio} disabled={isLoading('relatorio-pdf')} style={{ padding:'9px 18px', border:'none', background:'#2563eb', borderRadius:'8px', fontSize:'13px', fontWeight:'600', color:'#fff', cursor: isLoading('relatorio-pdf') ? 'default' : 'pointer', opacity: isLoading('relatorio-pdf') ? 0.7 : 1 }}>
+                {isLoading('relatorio-pdf') ? 'Gerando...' : '⬇ Baixar PDF'}
               </button>
             </div>
           </div>
