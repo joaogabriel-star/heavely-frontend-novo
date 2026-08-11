@@ -280,6 +280,10 @@ export const DashboardCandidato = () => {
 
     const radarDeProvas = setInterval(() => {
       carregarEventos();
+      // Recarrega candidaturas também — sem isso, um evento editado pelo
+      // coordenador (ex: data alterada para hoje) só aparece pra quem já
+      // está com a tela de "Bater Ponto" aberta depois de um F5 manual.
+      carregarMinhasCandidaturas();
     }, 30000);
 
     return () => clearInterval(radarDeProvas);
