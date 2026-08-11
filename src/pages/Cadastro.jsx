@@ -186,7 +186,7 @@ const handleSubmit = (e) => {
 
           NomeCompleto: formData.nomeCompleto,
 
-          Cpf: formData.cpf,
+          Cpf: formData.cpf.replace(/\D/g, ''),
 
           Celular: formData.celular,
 
@@ -214,7 +214,7 @@ const handleSubmit = (e) => {
 
           NomeCompleto: formData.nomeCompleto,
 
-          Cpf: formData.cpf,
+          Cpf: formData.cpf.replace(/\D/g, ''),
 
           DataNascimento: formData.dataNascimento,
 
