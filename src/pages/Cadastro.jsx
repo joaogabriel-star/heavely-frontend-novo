@@ -22,8 +22,6 @@ export const Cadastro = () => {
 
   const [tipoConta, setTipoConta] = useState('');
 
-  const [erro, setErro] = useState('');
-
   const { run, isLoading } = useAsyncAction();
 
   const [arquivoNadaConsta, setArquivoNadaConsta] = useState(null);
@@ -154,7 +152,7 @@ const handleSubmit = (e) => {
 
     if (formData.senha !== formData.confirmarSenha) {
 
-      setErro('As senhas não coincidem.');
+      showToast('As senhas não coincidem.', 'error');
 
       return;
 
@@ -164,7 +162,7 @@ const handleSubmit = (e) => {
 
     if (!tipoConta) {
 
-      setErro('Por favor, selecione um tipo de conta.');
+      showToast('Por favor, selecione um tipo de conta.', 'error');
 
       return;
 
@@ -302,7 +300,7 @@ const handleSubmit = (e) => {
 
       // Pega a mensagem de erro que vem do C# (ex: "CPF já cadastrado")
 
-      setErro(error.response?.data?.mensagem || error.message || 'Erro ao realizar o cadastro. Tente novamente.');
+      showToast(error.response?.data?.mensagem || error.message || 'Erro ao realizar o cadastro. Tente novamente.', 'error');
 
     }
 
