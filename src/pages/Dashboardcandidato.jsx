@@ -4,8 +4,10 @@ import '../styles/Dashboardcandidato.css';
 import api, { eventoService, pontoService } from '../services/api';
 import { LayoutDashboard, UserCheck, Users, FileText, User, FileCheck, Search, Wallet, Clock} from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { useToast } from '../context/ToastContext.jsx';
 
 export const DashboardCandidato = () => {
+  const { showToast } = useToast();
 
   // ─── 1. NAVEGAÇÃO ────────────────────────────────────────────
   const [activeTab,    setActiveTab]    = useState('provas');
@@ -328,7 +330,7 @@ export const DashboardCandidato = () => {
     if (!idProvaAtiva) {
       const primeiraConfirmada = minhasCandidaturas.find(c => c.status === 'Confirmado');
       if (!primeiraConfirmada) {
-        alert('Você não possui nenhuma prova confirmada para hoje.');
+        showToast('Você não possui nenhuma prova confirmada para hoje.', 'warning');
         return;
       }
     }
@@ -355,7 +357,7 @@ export const DashboardCandidato = () => {
       const msg = error.response?.data?.mensagem
         || error.response?.data?.message
         || 'Erro ao registrar entrada. Você já registrou hoje?';
-      alert(msg);
+      showToast(msg, 'error');
     }
   };
 
@@ -364,7 +366,7 @@ export const DashboardCandidato = () => {
     scaneandoTokenRef.current = true;
 
     if (!idProvaAtiva) {
-      alert('Nenhuma prova em andamento hoje — check-in não encontrado.');
+      showToast('Nenhuma prova em andamento hoje — check-in não encontrado.', 'warning');
       scaneandoTokenRef.current = false;
       setScaneando(false);
       return;
@@ -387,7 +389,7 @@ export const DashboardCandidato = () => {
     } catch (error) {
       console.error('Erro checkout:', error.response?.data);
       const msg = error.response?.data?.mensagem || 'Erro ao registrar saída.';
-      alert(msg);
+      showToast(msg, 'error');
       scaneandoTokenRef.current = false; // permite tentar de novo com outro QR
     }
   };
@@ -400,10 +402,10 @@ export const DashboardCandidato = () => {
 
   const handleSalvarPerfil = async () => {
     if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
-      alert('As senhas não coincidem!'); return;
+      showToast('As senhas não coincidem!', 'warning'); return;
     }
     if (perfilFormData.novaSenha && !perfilFormData.senhaAtual) {
-      alert('Informe sua senha atual para definir uma nova senha.'); return;
+      showToast('Informe sua senha atual para definir uma nova senha.', 'warning'); return;
     }
 
     setSalvandoPerfil(true);
@@ -423,10 +425,10 @@ export const DashboardCandidato = () => {
         setPerfilFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '', confirmarSenha: '' }));
       }
 
-      alert('Perfil atualizado com sucesso!');
+      showToast('Perfil atualizado com sucesso!', 'success');
     } catch (error) {
       const msg = error.response?.data?.mensagem || 'Erro ao atualizar perfil.';
-      alert(msg);
+      showToast(msg, 'error');
     } finally {
       setSalvandoPerfil(false);
     }
@@ -444,8 +446,8 @@ export const DashboardCandidato = () => {
         status: 'Confirmado',
       };
       setMinhasCandidaturas(prev => [...prev, nova]);
-      carregarEventos(); 
-      alert('Inscrição confirmada com sucesso!');
+      carregarEventos();
+      showToast('Inscrição confirmada com sucesso!', 'success');
       setProvaSelecionada(null);
       setActiveTab('candidaturas');
     } catch (error) {
@@ -453,7 +455,7 @@ export const DashboardCandidato = () => {
       if (error.response?.data?.mensagem)                msg = error.response.data.mensagem;
       else if (error.response?.data?.errors)             msg = JSON.stringify(error.response.data.errors);
       else if (typeof error.response?.data === 'string') msg = error.response.data;
-      alert(msg);
+      showToast(msg, 'error');
     }
   };
 
@@ -464,9 +466,9 @@ export const DashboardCandidato = () => {
   };
 
   const efetivarCancelamento = async () => {
-    if (!motivoCancelamento) { 
-      alert('Selecione um motivo.'); 
-      return; 
+    if (!motivoCancelamento) {
+      showToast('Selecione um motivo.', 'warning');
+      return;
     }
 
     try {
@@ -475,13 +477,13 @@ export const DashboardCandidato = () => {
       });
 
       setMinhasCandidaturas(prev => prev.filter(c => c.id !== candidaturaParaCancelar.id));
-      alert(`Inscrição cancelada: ${motivoCancelamento}`);
+      showToast(`Inscrição cancelada: ${motivoCancelamento}`, 'success');
       setCandidaturaParaCancelar(null);
       carregarEventos();
-      
+
     } catch (error) {
       console.error('Erro detalhado ao cancelar:', error.response?.data || error.message);
-      alert('Erro ao cancelar inscrição. Verifique o console (F12).');
+      showToast('Erro ao cancelar inscrição. Verifique o console (F12).', 'error');
     }
   };
 
@@ -489,16 +491,16 @@ export const DashboardCandidato = () => {
   const abrirModalRelato  = (prova) => { setProvaParaRelatar(prova); setRelatoForm({ tipo: '', descricao: '' }); };
   const fecharModalRelato = ()       => setProvaParaRelatar(null);
   const enviarRelato = async () => {
-    if (!relatoForm.tipo || !relatoForm.descricao) { alert('Preencha tipo e descrição.'); return; }
+    if (!relatoForm.tipo || !relatoForm.descricao) { showToast('Preencha tipo e descrição.', 'warning'); return; }
     try {
       await api.post(`/eventos/${provaParaRelatar.id}/ocorrencias`, {
         Tipo: relatoForm.tipo,
         Descricao: relatoForm.descricao,
       });
-      alert('✅ Relato enviado com sucesso à coordenação!');
+      showToast('✅ Relato enviado com sucesso à coordenação!', 'success');
       fecharModalRelato();
     } catch (error) {
-      alert(error.response?.data?.mensagem || 'Erro ao enviar relato. Tente novamente.');
+      showToast(error.response?.data?.mensagem || 'Erro ao enviar relato. Tente novamente.', 'error');
     }
   };
 

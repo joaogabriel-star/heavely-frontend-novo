@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import '../styles/Dashboardcoor.css';
 import api, { eventoService, usuarioService, pontoService, notaFiscalService } from '../services/api';
 import { LayoutDashboard, UserCheck, Users, FileText, User } from 'lucide-react';
+import { useToast } from '../context/ToastContext.jsx';
 
 // Fonte única dos valores de Série — reaproveitada no formulário de evento e no
 // filtro da Nota Fiscal, pra nunca ter duas listas que podem ficar dessincronizadas.
@@ -19,6 +20,7 @@ const SERIES_EM = [
 
 export const DashboardCoord = () => {
 
+  const { showToast } = useToast();
   const [activeTab, setActiveTab]         = useState('dashboard');
   const [activeSubTab, setActiveSubTab]   = useState('todos');
   const [isModalOpen, setIsModalOpen]     = useState(false);
@@ -175,10 +177,10 @@ export const DashboardCoord = () => {
 
   const handleSalvarPerfil = async () => {
     if (perfilFormData.novaSenha && perfilFormData.novaSenha !== perfilFormData.confirmarSenha) {
-      alert('As senhas não coincidem!'); return;
+      showToast('As senhas não coincidem!', 'warning'); return;
     }
     if (perfilFormData.novaSenha && !perfilFormData.senhaAtual) {
-      alert('Informe sua senha atual para definir uma nova senha.'); return;
+      showToast('Informe sua senha atual para definir uma nova senha.', 'warning'); return;
     }
 
     setSalvandoPerfil(true);
@@ -198,10 +200,10 @@ export const DashboardCoord = () => {
         setPerfilFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '', confirmarSenha: '' }));
       }
 
-      alert('Perfil atualizado com sucesso!');
+      showToast('Perfil atualizado com sucesso!', 'success');
     } catch (error) {
       const msg = error.response?.data?.mensagem || 'Erro ao atualizar perfil.';
-      alert(msg);
+      showToast(msg, 'error');
     } finally {
       setSalvandoPerfil(false);
     }
@@ -220,8 +222,8 @@ export const DashboardCoord = () => {
       await usuarioService.aprovarUsuario(idCandidato);
       setCandidatosPendentes(prev => prev.filter(c => c.id !== idCandidato));
       await recarregarMembros();
-      alert('Candidato aprovado! Agora ele pode fazer login.');
-    } catch (error) { alert('Erro ao aprovar o candidato.'); console.error(error); }
+      showToast('Candidato aprovado! Agora ele pode fazer login.', 'success');
+    } catch (error) { showToast('Erro ao aprovar o candidato.', 'error'); console.error(error); }
   };
 
   const handleRecusarCandidato = async (idCandidato) => {
@@ -229,21 +231,21 @@ export const DashboardCoord = () => {
     try {
       await usuarioService.recusarUsuario(idCandidato);
       setCandidatosPendentes(prev => prev.filter(c => c.id !== idCandidato));
-      alert('Candidato recusado.');
-    } catch (error) { alert('Erro ao recusar o candidato.'); console.error(error); }
+      showToast('Candidato recusado.', 'success');
+    } catch (error) { showToast('Erro ao recusar o candidato.', 'error'); console.error(error); }
   };
 
   // ── MEMBROS ────────────────────────────────────────────────────
   const handleMudancaFuncao     = (idMembro, novaFuncao) => setAlteracoesPendentes(prev => ({ ...prev, [idMembro]: novaFuncao }));
   const handleSalvarAlteracoes  = async () => {
     const ids = Object.keys(alteracoesPendentes);
-    if (ids.length === 0) { alert('Nenhuma alteração feita.'); return; }
+    if (ids.length === 0) { showToast('Nenhuma alteração feita.', 'warning'); return; }
     try {
       await Promise.all(ids.map(id => usuarioService.alterarPerfil(id, alteracoesPendentes[id])));
       setMembrosAtivos(prev => prev.map(m => ({ ...m, funcao: alteracoesPendentes[m.id] || m.funcao })));
       setAlteracoesPendentes({});
-      alert('Funções atualizadas!');
-    } catch (error) { alert('Erro ao salvar alterações.'); }
+      showToast('Funções atualizadas!', 'success');
+    } catch (error) { showToast('Erro ao salvar alterações.', 'error'); }
   };
 
 // ── EVENTOS: CRIAR ─────────────────────────────────────────────
@@ -266,7 +268,7 @@ export const DashboardCoord = () => {
     });
 
     if (eventoDuplicado) {
-      alert('⚠️ Ops! Já existe uma prova com este exato nome e horário na plataforma.');
+      showToast('⚠️ Ops! Já existe uma prova com este exato nome e horário na plataforma.', 'warning');
       return;
     }
 
@@ -299,10 +301,10 @@ export const DashboardCoord = () => {
 
       setIsModalOpen(false);
       setEventoFormData({ nome:'',serie:'',data:'',horario:'',duracao:'',vagas:'',vagasLedor:'',vagasFiscal:'',valor:'',tipoFuncao:'Ledor',observacoes:'' });
-      alert('✅ Evento criado com sucesso!');
+      showToast('✅ Evento criado com sucesso!', 'success');
     } catch (error) {
       const msg = error.response?.data?.mensagem || (error.response?.data?.errors ? JSON.stringify(error.response?.data?.errors) : 'Verifique os dados e tente novamente.');
-      alert(`Erro ao criar evento: ${msg}`); 
+      showToast(`Erro ao criar evento: ${msg}`, 'error');
       console.error(error);
     } finally {
       // 4. Liberta o botão independentemente de dar erro ou sucesso
@@ -354,7 +356,7 @@ export const DashboardCoord = () => {
       setCancelamentosEvento(todas.filter(a => a.status === 'Cancelado'));
     } catch (error) {
       console.error("Erro ao buscar inscritos:", error.response?.data || error.message);
-      alert("Não foi possível carregar os inscritos do banco.");
+      showToast("Não foi possível carregar os inscritos do banco.", 'error');
       setAlocacoesEvento([]); setCancelamentosEvento([]);
     }
   };
@@ -443,23 +445,23 @@ const handleSalvarEdicao = async (e) => {
       
       setIsModalOpen(false);
       setEventoEmDetalhe(null);
-      alert('✅ Evento atualizado com sucesso!');
-    } catch (error) { 
-      console.error("Erro ao salvar edição:", error); 
-      alert("Erro ao editar."); 
+      showToast('✅ Evento atualizado com sucesso!', 'success');
+    } catch (error) {
+      console.error("Erro ao salvar edição:", error);
+      showToast("Erro ao editar.", 'error');
     }
   };
 
   const handleCancelarInscricao = async (inscrito) => {
     const idDaAlocacao    = inscrito.idAlocacao || inscrito.IdAlocacao || inscrito.id;
     const nomeDoCandidato = inscrito.nomeUsuario || inscrito.NomeUsuario || 'este candidato';
-    if (!idDaAlocacao) { console.error("Dados:", inscrito); alert("Erro: ID não encontrado. Veja F12."); return; }
+    if (!idDaAlocacao) { console.error("Dados:", inscrito); showToast("Erro: ID não encontrado. Veja F12.", 'error'); return; }
     if (!window.confirm(`Remover ${nomeDoCandidato}?`)) return;
     try {
       await api.delete(`/alocacoes/${idDaAlocacao}`);
       setAlocacoesEvento(prev => prev.filter(i => (i.idAlocacao || i.IdAlocacao || i.id) !== idDaAlocacao));
-      alert("✅ Inscrição cancelada com sucesso!");
-    } catch (error) { console.error("Erro ao cancelar:", error); alert("Erro ao cancelar a inscrição."); }
+      showToast("✅ Inscrição cancelada com sucesso!", 'success');
+    } catch (error) { console.error("Erro ao cancelar:", error); showToast("Erro ao cancelar a inscrição.", 'error'); }
   };
 
   const atualizaSalaCandidato = (id, novaSala) => setAlocacoesEvento(prev => prev.map(a => a.id === id ? { ...a, sala: novaSala } : a));
@@ -467,8 +469,8 @@ const handleSalvarEdicao = async (e) => {
   const handlePublicarSalas = async () => {
     try {
       await api.put('/alocacoes/salvar-salas', alocacoesEvento.map(a => ({ IdAlocacao: a.id, Sala: a.sala || '' })));
-      alert('✅ Salas publicadas com sucesso!');
-    } catch (error) { console.error("Erro ao publicar salas:", error); alert('Erro ao publicar as salas.'); }
+      showToast('✅ Salas publicadas com sucesso!', 'success');
+    } catch (error) { console.error("Erro ao publicar salas:", error); showToast('Erro ao publicar as salas.', 'error'); }
   };
 
   // ── QR CODE ───────────────────────────────────────────────────
@@ -494,7 +496,7 @@ const handleSalvarEdicao = async (e) => {
       }, 1000);
     } catch (error) {
       console.error('Erro ao gerar QR Code:', error);
-      alert(error.response?.data?.mensagem || 'Erro ao gerar QR Code.');
+      showToast(error.response?.data?.mensagem || 'Erro ao gerar QR Code.', 'error');
     } finally {
       setQrCarregando(false);
     }
@@ -537,7 +539,7 @@ const handleSalvarEdicao = async (e) => {
       } else if (error.response?.data?.mensagem) {
         msg = error.response.data.mensagem;
       }
-      alert(msg);
+      showToast(msg, 'error');
     } finally {
       setGerandoRelatorio(false);
     }
@@ -564,11 +566,11 @@ const handleSalvarEdicao = async (e) => {
 
   const validarPeriodoNf = () => {
     if (!nfFiltro.dataInicio || !nfFiltro.dataFim) {
-      alert('⚠️ Preencha Data Início e Data Fim.');
+      showToast('⚠️ Preencha Data Início e Data Fim.', 'warning');
       return false;
     }
     if (nfFiltro.dataFim < nfFiltro.dataInicio) {
-      alert('⚠️ Data Fim não pode ser antes de Data Início.');
+      showToast('⚠️ Data Fim não pode ser antes de Data Início.', 'warning');
       return false;
     }
     return true;
@@ -581,7 +583,7 @@ const handleSalvarEdicao = async (e) => {
       const dados = await notaFiscalService.buscarDados(montarParamsNf());
       setNfPreview(dados);
     } catch (error) {
-      alert(error.response?.data?.mensagem || 'Erro ao buscar prévia da Nota Fiscal.');
+      showToast(error.response?.data?.mensagem || 'Erro ao buscar prévia da Nota Fiscal.', 'error');
       setNfPreview(null);
     } finally {
       setNfBuscando(false);
@@ -611,7 +613,7 @@ const handleSalvarEdicao = async (e) => {
       } else if (error.response?.data?.mensagem) {
         msg = error.response.data.mensagem;
       }
-      alert(msg);
+      showToast(msg, 'error');
     } finally {
       setNfBaixando(false);
     }

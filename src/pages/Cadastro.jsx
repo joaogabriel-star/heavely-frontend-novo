@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Cadastro.css';
 
 import { authService } from '../services/api';
+import { useToast } from '../context/ToastContext.jsx';
 
 
 
@@ -13,6 +14,8 @@ import { authService } from '../services/api';
 export const Cadastro = () => {
 
   const navigate = useNavigate();
+
+  const { showToast } = useToast();
 
   // Estado para controlar o tipo de conta selecionado
 
@@ -270,7 +273,7 @@ const handleSubmit = async (e) => {
 
           } catch (uploadError) {
 
-            alert('Cadastro realizado com sucesso! Porém houve um erro ao enviar seus documentos — você poderá reenviá-los depois. Detalhe: ' + (uploadError.response?.data?.mensagem || 'erro desconhecido'));
+            showToast('Cadastro realizado com sucesso! Porém houve um erro ao enviar seus documentos — você poderá reenviá-los depois. Detalhe: ' + (uploadError.response?.data?.mensagem || 'erro desconhecido'), 'warning');
 
             navigate('/login');
 
@@ -288,7 +291,7 @@ const handleSubmit = async (e) => {
 
       // 3. Sucesso!
 
-      alert('Cadastro realizado com sucesso!');
+      showToast('Cadastro realizado com sucesso!', 'success');
 
       navigate('/login'); // Redireciona para a tela de login
 

@@ -57,7 +57,7 @@ export const Login = () => {
         console.error("Erro ao desempacotar dados:", err);
       }
       
-      alert("Erro crítico: O ID do usuário não foi encontrado na resposta do servidor.");
+      showToast("Erro crítico: O ID do usuário não foi encontrado na resposta do servidor.", 'error');
     }
 
     setCarregando(false);
@@ -102,14 +102,6 @@ export const Login = () => {
               <span>⚠️</span> {erro}
             </div>
           )}
-
-          {/* TESTE TEMPORÁRIO DO TOAST — remover depois de validar */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => showToast('Operação concluída com sucesso!', 'success')}>Toast sucesso</button>
-            <button type="button" onClick={() => showToast('Ocorreu um erro ao processar.', 'error')}>Toast erro</button>
-            <button type="button" onClick={() => showToast('Atenção: verifique os dados.', 'warning')}>Toast aviso</button>
-            <button type="button" onClick={() => showToast('Isso é uma informação.', 'info')}>Toast info</button>
-          </div>
 
           <form onSubmit={handleSubmit}>
             <Input
