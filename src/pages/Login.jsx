@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/Authcontext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAsyncAction } from '../hooks/useAsyncAction.js';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input } from "../components/Input.jsx";
 import '../styles/Login.css';
@@ -13,7 +14,10 @@ export const Login = () => {
 
   const { login } = useAuth();
   const { showToast } = useToast();
+  const { run, isLoading } = useAsyncAction();
   const navigate = useNavigate();
+
+  const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
  const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,6 +106,34 @@ export const Login = () => {
               <span>⚠️</span> {erro}
             </div>
           )}
+
+          {/* TESTE TEMPORÁRIO DO useAsyncAction — remover depois de validar */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px', border: '1px dashed #cbd5e1', padding: '12px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button"
+                disabled={isLoading('acao-unica')}
+                onClick={() => run(async () => { await esperar(2000); showToast('Ação única concluída!', 'success'); }, 'acao-unica')}
+              >
+                {isLoading('acao-unica') ? 'Processando...' : 'Testar ação única (2s)'}
+              </button>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>clique 2x rápido pra testar a trava anti-duplo-clique</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {['linha-1', 'linha-2', 'linha-3'].map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={isLoading(key)}
+                  onClick={() => run(async () => { await esperar(2000); showToast(`${key} concluída!`, 'success'); }, key)}
+                >
+                  {isLoading(key) ? 'Gerando...' : key}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>clique em uma linha e, enquanto ela carrega, clique nas outras — só a clicada deve desabilitar</span>
+          </div>
 
           <form onSubmit={handleSubmit}>
             <Input
