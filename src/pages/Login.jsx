@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/Authcontext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input } from "../components/Input.jsx";
 import '../styles/Login.css';
@@ -11,7 +12,8 @@ export const Login = () => {
   const [carregando, setCarregando] = useState(false);
 
   const { login } = useAuth();
-  const navigate = useNavigate(); 
+  const { showToast } = useToast();
+  const navigate = useNavigate();
 
  const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,6 +102,14 @@ export const Login = () => {
               <span>⚠️</span> {erro}
             </div>
           )}
+
+          {/* TESTE TEMPORÁRIO DO TOAST — remover depois de validar */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => showToast('Operação concluída com sucesso!', 'success')}>Toast sucesso</button>
+            <button type="button" onClick={() => showToast('Ocorreu um erro ao processar.', 'error')}>Toast erro</button>
+            <button type="button" onClick={() => showToast('Atenção: verifique os dados.', 'warning')}>Toast aviso</button>
+            <button type="button" onClick={() => showToast('Isso é uma informação.', 'info')}>Toast info</button>
+          </div>
 
           <form onSubmit={handleSubmit}>
             <Input
