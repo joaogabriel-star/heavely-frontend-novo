@@ -9,7 +9,6 @@ import '../styles/Login.css';
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [erro, setErro] = useState('');
 
   const { login } = useAuth();
   const { showToast } = useToast();
@@ -18,13 +17,12 @@ export const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setErro('');
 
     run(async () => {
       const resultado = await login(email, senha);
 
       if (!resultado || !resultado.success) {
-        setErro(resultado?.message || 'Erro ao fazer login. Verifique suas credenciais.');
+        showToast(resultado?.message || 'Erro ao fazer login. Verifique suas credenciais.', 'error');
       } else {
         // 🚀 A SOLUÇÃO FINAL: Desempacotar a Lista do C#
         try {
@@ -96,12 +94,6 @@ export const Login = () => {
             </div>
             <p className="form-subtitle">Acesse sua conta</p>
           </div>
-
-          {erro && (
-            <div className="error-box">
-              <span>⚠️</span> {erro}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit}>
             <Input
