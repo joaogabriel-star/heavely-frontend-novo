@@ -206,6 +206,17 @@ export const DashboardCoord = () => {
     });
   };
 
+  const handleCancelarPerfil = () => {
+    setPerfilFormData({
+      nome:           localStorage.getItem('nomeUsuario')  || '',
+      email:          localStorage.getItem('emailUsuario') || '',
+      telefone:       '',
+      senhaAtual:     '',
+      novaSenha:      '',
+      confirmarSenha: '',
+    });
+  };
+
   const getAvatarColor = (name) => {
     if (!name) return '#ef4444';
     const colors = ['#ef4444', '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6'];
@@ -1107,7 +1118,7 @@ const handleSalvarEdicao = () => {
                   <div className="field-grp" style={{ gridColumn:'1/-1' }}><label>NOVA SENHA</label><input type="password" name="novaSenha" value={perfilFormData.novaSenha} onChange={handlePerfilChange} placeholder="Deixe em branco para não alterar"/></div>
                   <div className="field-grp" style={{ gridColumn:'1/-1' }}><label>CONFIRMAR SENHA</label><input type="password" name="confirmarSenha" value={perfilFormData.confirmarSenha} onChange={handlePerfilChange} placeholder="Repita a nova senha"/></div>
                 </div>
-                <div style={{ display:'flex', gap:'10px', marginTop:'20px' }}><button className="btn-outline" disabled={isLoading()}>Cancelar</button><button className="btn-primary" onClick={handleSalvarPerfil} disabled={isLoading()}>{isLoading() ? 'Salvando...' : 'Salvar Alterações'}</button></div>
+                <div style={{ display:'flex', gap:'10px', marginTop:'20px' }}><button className="btn-outline" onClick={handleCancelarPerfil} disabled={isLoading()}>Cancelar</button><button className="btn-primary" onClick={handleSalvarPerfil} disabled={isLoading()}>{isLoading() ? 'Salvando...' : 'Salvar Alterações'}</button></div>
               </div>
             </div>
           </div>
