@@ -298,9 +298,14 @@ const handleSubmit = (e) => {
 
       console.error('Erro no cadastro:', error);
 
-      // Pega a mensagem de erro que vem do C# (ex: "CPF já cadastrado")
+      // Pega a mensagem de erro que vem do C#: erros de negócio chegam em
+      // { mensagem }, erros de validação de campo (DataAnnotations) chegam
+      // em { errors: { Campo: ["mensagem"] } } — sem isso, cai no texto
+      // genérico do Axios ("Request failed with status code 400").
+      const dadosErro = error.response?.data;
+      const mensagemValidacao = dadosErro?.errors && Object.values(dadosErro.errors)[0]?.[0];
 
-      showToast(error.response?.data?.mensagem || error.message || 'Erro ao realizar o cadastro. Tente novamente.', 'error');
+      showToast(dadosErro?.mensagem || mensagemValidacao || error.message || 'Erro ao realizar o cadastro. Tente novamente.', 'error');
 
     }
 
