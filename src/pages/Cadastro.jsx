@@ -224,7 +224,7 @@ const handleSubmit = (e) => {
 
           EscolaridadeNivel: formData.escolaridadeNivel || "Não informado",
 
-          EscolaridadeStatus: formData.escolaridadeStatus || "Não informado",
+          EscolaridadeStatus: formData.escolaridadeStatus || null,
 
           InstituicaoEnsino: formData.instituicaoEnsino || "Não informado",
 
